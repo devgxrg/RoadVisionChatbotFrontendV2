@@ -1,501 +1,585 @@
-import type { DocumentSummary, Document, Folder, Category } from '../types/dms';
+import { API_BASE_URL } from "@/lib/config/api";
+import type {
+  DocumentSummary,
+  Document,
+  Folder,
+  Category,
+  UploadURLRequest,
+  UploadURLResponse,
+  ConfirmUploadRequest,
+  UpdateDocumentRequest,
+  CreateFolderRequest,
+  UpdateFolderRequest,
+  Permission,
+} from "../types/dms";
 
+// Helper to convert snake_case to camelCase if needed
+const transformDocumentFromAPI = (doc: any): Document => ({
+  ...doc,
+  file_type: doc.file_type || doc.fileType,
+  uploaded_by: doc.uploaded_by || doc.uploadedBy,
+  uploaded_at: doc.uploaded_at || doc.uploadedAt,
+  modified_at: doc.modified_at || doc.modifiedAt,
+  folder_id: doc.folder_id || doc.folderId,
+  folder_path: doc.folder_path || doc.folderPath,
+  category_ids: doc.category_ids || doc.categoryIds,
+  confidentiality_level: doc.confidentiality_level || doc.confidentialityLevel,
+});
+
+const transformFolderFromAPI = (folder: any): Folder => ({
+  ...folder,
+  parent_id: folder.parent_id || folder.parentFolderId,
+  document_count: folder.document_count || folder.documentCount,
+  created_at: folder.created_at || folder.createdAt,
+  modified_at: folder.modified_at || folder.modifiedAt,
+  subfolders: folder.subfolders?.map(transformFolderFromAPI) || [],
+});
+
+/**
+ * Get DMS summary (total documents, recent uploads, storage used, shared documents)
+ */
 export const getDMSSummary = async (): Promise<DocumentSummary> => {
-  const documents = await getDocuments();
-  const recentDate = new Date();
-  recentDate.setDate(recentDate.getDate() - 7);
-  
-  const recentUploads = documents.filter(
-    doc => new Date(doc.uploadedAt) > recentDate
-  ).length;
+  const response = await fetch(`${API_BASE_URL}/dms/summary`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
 
-  const sharedDocuments = documents.filter(
-    doc => doc.confidentialityLevel === 'public' || doc.confidentialityLevel === 'internal'
-  ).length;
+  if (!response.ok) {
+    throw new Error("Failed to fetch DMS summary");
+  }
 
+  const data = await response.json();
   return {
-    totalDocuments: documents.length,
-    recentUploads,
-    storageUsed: "32.4 GB",
-    sharedDocuments,
+    total_documents: data.total_documents,
+    recent_uploads: data.recent_uploads,
+    storage_used: data.storage_used,
+    shared_documents: data.shared_documents,
   };
 };
 
+/**
+ * Get all categories
+ */
 export const getCategories = async (): Promise<Category[]> => {
-  return [
-    { id: 'cat-1', name: 'Contracts', color: 'blue' },
-    { id: 'cat-2', name: 'Tenders', color: 'green' },
-    { id: 'cat-3', name: 'Legal', color: 'red' },
-    { id: 'cat-4', name: 'Technical', color: 'purple' },
-    { id: 'cat-5', name: 'Financial', color: 'orange' },
-    { id: 'cat-6', name: 'HR', color: 'pink' },
-  ];
+  const response = await fetch(`${API_BASE_URL}/dms/categories`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch categories");
+  }
+
+  return response.json();
 };
 
-export const getFolders = async (): Promise<Folder[]> => {
-  const documents = await getDocuments();
-  
-  const countDocs = (folderId: string): number => {
-    return documents.filter(doc => doc.folderId === folderId).length;
-  };
-  
-  return [
+/**
+ * Get all folders with optional filtering
+ */
+export const getFolders = async (options?: {
+  parent_id?: string;
+  department?: string;
+  search?: string;
+}): Promise<Folder[]> => {
+  const params = new URLSearchParams();
+  if (options?.parent_id) params.append("parent_id", options.parent_id);
+  if (options?.department) params.append("department", options.department);
+  if (options?.search) params.append("search", options.search);
+
+  const response = await fetch(
+    `${API_BASE_URL}/dms/folders?${params.toString()}`,
     {
-      id: 'root-1',
-      name: 'Tender & Bidding',
-      parentFolderId: null,
-      path: '/Tender & Bidding',
-      documentCount: countDocs('root-1') + countDocs('sub-1-1') + countDocs('sub-1-2'),
-      createdAt: '2024-01-15',
-      modifiedAt: '2024-12-20',
-      subfolders: [
-        {
-          id: 'sub-1-1',
-          name: 'Active Tenders',
-          parentFolderId: 'root-1',
-          path: '/Tender & Bidding/Active Tenders',
-          documentCount: countDocs('sub-1-1'),
-          createdAt: '2024-02-01',
-          modifiedAt: '2024-12-18',
-          subfolders: [],
-        },
-        {
-          id: 'sub-1-2',
-          name: 'Archive',
-          parentFolderId: 'root-1',
-          path: '/Tender & Bidding/Archive',
-          documentCount: countDocs('sub-1-2'),
-          createdAt: '2024-02-01',
-          modifiedAt: '2024-11-30',
-          subfolders: [],
-        },
-      ],
-    },
-    {
-      id: 'root-2',
-      name: 'Contracts & Legal',
-      parentFolderId: null,
-      path: '/Contracts & Legal',
-      documentCount: countDocs('root-2') + countDocs('sub-2-1') + countDocs('sub-2-1-1') + countDocs('sub-2-2'),
-      createdAt: '2024-01-15',
-      modifiedAt: '2024-12-21',
-      subfolders: [
-        {
-          id: 'sub-2-1',
-          name: 'Active Contracts',
-          parentFolderId: 'root-2',
-          path: '/Contracts & Legal/Active Contracts',
-          documentCount: countDocs('sub-2-1') + countDocs('sub-2-1-1'),
-          createdAt: '2024-02-10',
-          modifiedAt: '2024-12-21',
-          subfolders: [
-            {
-              id: 'sub-2-1-1',
-              name: 'Infrastructure',
-              parentFolderId: 'sub-2-1',
-              path: '/Contracts & Legal/Active Contracts/Infrastructure',
-              documentCount: countDocs('sub-2-1-1'),
-              createdAt: '2024-03-01',
-              modifiedAt: '2024-12-15',
-              subfolders: [],
-            },
-          ],
-        },
-        {
-          id: 'sub-2-2',
-          name: 'Templates',
-          parentFolderId: 'root-2',
-          path: '/Contracts & Legal/Templates',
-          documentCount: countDocs('sub-2-2'),
-          createdAt: '2024-02-10',
-          modifiedAt: '2024-12-10',
-          subfolders: [],
-        },
-      ],
-    },
-    {
-      id: 'root-3',
-      name: 'Finance & Billing',
-      parentFolderId: null,
-      path: '/Finance & Billing',
-      documentCount: countDocs('root-3'),
-      createdAt: '2024-01-15',
-      modifiedAt: '2024-12-22',
-      subfolders: [],
-    },
-    {
-      id: 'root-4',
-      name: 'HR Documents',
-      parentFolderId: null,
-      path: '/HR Documents',
-      documentCount: countDocs('root-4'),
-      createdAt: '2024-01-15',
-      modifiedAt: '2024-12-19',
-      subfolders: [],
-    },
-  ];
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch folders");
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data.map(transformFolderFromAPI) : [];
 };
 
-export const getDocuments = async (): Promise<Document[]> => {
-  return [
-    {
-      id: '1',
-      name: 'Highway_Construction_Contract_2024.pdf',
-      fileType: 'pdf',
-      size: '2.4 MB',
-      uploadedBy: 'Rajesh Kumar',
-      uploadedAt: '2024-12-15T10:30:00Z',
-      modifiedAt: '2024-12-18T14:20:00Z',
-      department: 'Contracts & Legal',
-      folderId: 'sub-2-1-1',
-      folderPath: '/Contracts & Legal/Active Contracts/Infrastructure',
-      categoryIds: ['cat-1', 'cat-4'],
-      tags: ['Highway', 'Infrastructure', 'Active'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-      description: 'Major highway construction project contract',
-      version: 'v2.1',
+/**
+ * Get specific folder details
+ */
+export const getFolder = async (folderId: string): Promise<Folder> => {
+  const response = await fetch(`${API_BASE_URL}/dms/folders/${folderId}`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
-    {
-      id: '2',
-      name: 'Tender_Proposal_NH44_Extension.docx',
-      fileType: 'docx',
-      size: '1.8 MB',
-      uploadedBy: 'Priya Sharma',
-      uploadedAt: '2024-12-10T09:15:00Z',
-      modifiedAt: '2024-12-10T09:15:00Z',
-      department: 'Tender & Bidding',
-      folderId: 'sub-1-1',
-      folderPath: '/Tender & Bidding/Active Tenders',
-      categoryIds: ['cat-2', 'cat-4'],
-      tags: ['Tender', 'NH44', 'Proposal'],
-      status: 'active',
-      confidentialityLevel: 'internal',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch folder ${folderId}`);
+  }
+
+  const data = await response.json();
+  return transformFolderFromAPI(data);
+};
+
+/**
+ * Create a new folder
+ */
+export const createFolder = async (
+  request: CreateFolderRequest
+): Promise<Folder> => {
+  const response = await fetch(`${API_BASE_URL}/dms/folders`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
-    {
-      id: '3',
-      name: 'Financial_Report_Q4_2024.xlsx',
-      fileType: 'xlsx',
-      size: '856 KB',
-      uploadedBy: 'Amit Patel',
-      uploadedAt: '2024-12-20T11:00:00Z',
-      modifiedAt: '2024-12-21T16:30:00Z',
-      department: 'Finance',
-      folderId: 'root-3',
-      folderPath: '/Finance & Billing',
-      categoryIds: ['cat-5'],
-      tags: ['Finance', 'Q4', 'Report'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create folder");
+  }
+
+  const data = await response.json();
+  return transformFolderFromAPI(data);
+};
+
+/**
+ * Update folder (rename, change department)
+ */
+export const updateFolder = async (
+  folderId: string,
+  request: UpdateFolderRequest
+): Promise<Folder> => {
+  const response = await fetch(`${API_BASE_URL}/dms/folders/${folderId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
-    {
-      id: '4',
-      name: 'Employee_Handbook_2024.pdf',
-      fileType: 'pdf',
-      size: '3.2 MB',
-      uploadedBy: 'Neha Singh',
-      uploadedAt: '2024-11-05T14:00:00Z',
-      modifiedAt: '2024-11-05T14:00:00Z',
-      department: 'HR',
-      folderId: 'root-4',
-      folderPath: '/HR Documents',
-      categoryIds: ['cat-6'],
-      tags: ['HR', 'Handbook', 'Policy'],
-      status: 'active',
-      confidentialityLevel: 'internal',
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update folder");
+  }
+
+  const data = await response.json();
+  return transformFolderFromAPI(data);
+};
+
+/**
+ * Delete folder (soft delete)
+ */
+export const deleteFolder = async (folderId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/dms/folders/${folderId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
-    {
-      id: '5',
-      name: 'Bridge_Design_Specifications.pdf',
-      fileType: 'pdf',
-      size: '5.1 MB',
-      uploadedBy: 'Vikram Reddy',
-      uploadedAt: '2024-12-01T08:30:00Z',
-      modifiedAt: '2024-12-12T10:15:00Z',
-      department: 'Contracts & Legal',
-      folderId: 'sub-2-2',
-      folderPath: '/Contracts & Legal/Templates',
-      categoryIds: ['cat-3', 'cat-4'],
-      tags: ['Bridge', 'Technical', 'Design'],
-      status: 'active',
-      confidentialityLevel: 'public',
-      version: 'v1.3',
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete folder");
+  }
+};
+
+/**
+ * Move folder to another location
+ */
+export const moveFolder = async (
+  folderId: string,
+  parentId: string | null
+): Promise<Folder> => {
+  const response = await fetch(`${API_BASE_URL}/dms/folders/${folderId}/move`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
+    body: JSON.stringify({ parent_id: parentId }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to move folder");
+  }
+
+  const data = await response.json();
+  return transformFolderFromAPI(data);
+};
+
+/**
+ * Get documents with optional filtering
+ */
+export const getDocuments = async (options?: {
+  folder_id?: string;
+  category_id?: string;
+  search?: string;
+  tags?: string[];
+  status?: string;
+}): Promise<Document[]> => {
+  const params = new URLSearchParams();
+  if (options?.folder_id) params.append("folder_id", options.folder_id);
+  if (options?.category_id) params.append("category_id", options.category_id);
+  if (options?.search) params.append("search", options.search);
+  if (options?.status) params.append("status", options.status);
+  if (options?.tags?.length) {
+    options.tags.forEach((tag) => params.append("tags", tag));
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/dms/documents?${params.toString()}`,
     {
-      id: '6',
-      name: 'Safety_Audit_Report_2024.pdf',
-      fileType: 'pdf',
-      size: '1.9 MB',
-      uploadedBy: 'Sanjay Gupta',
-      uploadedAt: '2024-12-19T09:45:00Z',
-      modifiedAt: '2024-12-19T09:45:00Z',
-      department: 'HR',
-      folderId: 'root-4',
-      folderPath: '/HR Documents',
-      categoryIds: ['cat-6'],
-      tags: ['Safety', 'Audit', 'Compliance'],
-      status: 'active',
-      confidentialityLevel: 'internal',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch documents");
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data.map(transformDocumentFromAPI) : [];
+};
+
+/**
+ * Get specific document details
+ */
+export const getDocument = async (documentId: string): Promise<Document> => {
+  const response = await fetch(`${API_BASE_URL}/dms/documents/${documentId}`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch document ${documentId}`);
+  }
+
+  const data = await response.json();
+  return transformDocumentFromAPI(data);
+};
+
+/**
+ * Get presigned upload URL for a document
+ */
+export const getUploadURL = async (
+  request: UploadURLRequest
+): Promise<UploadURLResponse> => {
+  const response = await fetch(`${API_BASE_URL}/dms/upload-url`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to get upload URL");
+  }
+
+  return response.json();
+};
+
+/**
+ * Upload file to S3 using presigned URL
+ */
+export const uploadFileToS3 = async (
+  presignedUrl: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<{ etag: string; versionId?: string }> => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    if (onProgress) {
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          const progress = (e.loaded / e.total) * 100;
+          onProgress(progress);
+        }
+      });
+    }
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const etag = xhr.getResponseHeader("ETag") || "";
+        const versionId = xhr.getResponseHeader("x-amz-version-id");
+        resolve({ etag: etag.replace(/"/g, ""), versionId: versionId || undefined });
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Upload failed"));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Upload canceled"));
+    });
+
+    xhr.open("PUT", presignedUrl);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.send(file);
+  });
+};
+
+/**
+ * Confirm document upload completion
+ */
+export const confirmUpload = async (
+  documentId: string,
+  request: ConfirmUploadRequest
+): Promise<Document> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/documents/${documentId}/confirm-upload`,
     {
-      id: '7',
-      name: 'Metro_Expansion_Proposal.pptx',
-      fileType: 'pptx',
-      size: '15.3 MB',
-      uploadedBy: 'Anita Desai',
-      uploadedAt: '2024-12-18T11:20:00Z',
-      modifiedAt: '2024-12-20T16:35:00Z',
-      department: 'Tender & Bidding',
-      folderId: 'sub-1-1',
-      folderPath: '/Tender & Bidding/Active Tenders',
-      categoryIds: ['cat-2', 'cat-4'],
-      tags: ['Metro', 'Expansion', 'Presentation'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-      version: 'v1.5',
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(request),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to confirm upload");
+  }
+
+  const data = await response.json();
+  return transformDocumentFromAPI(data);
+};
+
+/**
+ * Update document metadata
+ */
+export const updateDocument = async (
+  documentId: string,
+  request: UpdateDocumentRequest
+): Promise<Document> => {
+  const response = await fetch(`${API_BASE_URL}/dms/documents/${documentId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update document");
+  }
+
+  const data = await response.json();
+  return transformDocumentFromAPI(data);
+};
+
+/**
+ * Delete document (soft delete)
+ */
+export const deleteDocument = async (documentId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/dms/documents/${documentId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete document");
+  }
+};
+
+/**
+ * Get document download URL
+ */
+export const getDownloadURL = async (
+  documentId: string
+): Promise<{ download_url: string }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/documents/${documentId}/download-url`,
     {
-      id: '8',
-      name: 'Vendor_Payment_Schedule.xlsx',
-      fileType: 'xlsx',
-      size: '542 KB',
-      uploadedBy: 'Rahul Nair',
-      uploadedAt: '2024-12-17T14:10:00Z',
-      modifiedAt: '2024-12-21T10:25:00Z',
-      department: 'Finance',
-      folderId: 'root-3',
-      folderPath: '/Finance & Billing',
-      categoryIds: ['cat-5'],
-      tags: ['Payments', 'Vendors', 'Schedule'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-    },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to get download URL");
+  }
+
+  return response.json();
+};
+
+/**
+ * Get document version history
+ */
+export const getDocumentVersions = async (
+  documentId: string
+): Promise<Document[]> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/documents/${documentId}/versions`,
     {
-      id: '9',
-      name: 'Environmental_Clearance_Certificate.pdf',
-      fileType: 'pdf',
-      size: '987 KB',
-      uploadedBy: 'Priya Menon',
-      uploadedAt: '2024-12-16T08:30:00Z',
-      modifiedAt: '2024-12-16T08:30:00Z',
-      department: 'Contracts & Legal',
-      folderId: 'sub-2-1-1',
-      folderPath: '/Contracts & Legal/Active Contracts/Infrastructure',
-      categoryIds: ['cat-3', 'cat-4'],
-      tags: ['Environment', 'Clearance', 'Certificate'],
-      status: 'active',
-      confidentialityLevel: 'public',
-    },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch document versions");
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data.map(transformDocumentFromAPI) : [];
+};
+
+/**
+ * Get document permissions
+ */
+export const getDocumentPermissions = async (
+  documentId: string
+): Promise<Permission[]> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/documents/${documentId}/permissions`,
     {
-      id: '10',
-      name: 'Bridge_Construction_Blueprint.dwg',
-      fileType: 'dwg',
-      size: '12.7 MB',
-      uploadedBy: 'Arun Kumar',
-      uploadedAt: '2024-12-15T13:15:00Z',
-      modifiedAt: '2024-12-19T11:40:00Z',
-      department: 'Tender & Bidding',
-      folderId: 'sub-1-1',
-      folderPath: '/Tender & Bidding/Active Tenders',
-      categoryIds: ['cat-4'],
-      tags: ['Bridge', 'Blueprint', 'CAD'],
-      status: 'active',
-      confidentialityLevel: 'internal',
-      version: 'v2.0',
-    },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch document permissions");
+  }
+
+  return response.json();
+};
+
+/**
+ * Grant document permissions
+ */
+export const grantDocumentPermission = async (
+  documentId: string,
+  userId: string,
+  permissionLevel: string
+): Promise<Permission> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/documents/${documentId}/permissions`,
     {
-      id: '11',
-      name: 'Employee_Training_Manual.pdf',
-      fileType: 'pdf',
-      size: '4.2 MB',
-      uploadedBy: 'Kavita Singh',
-      uploadedAt: '2024-12-14T10:00:00Z',
-      modifiedAt: '2024-12-14T10:00:00Z',
-      department: 'HR',
-      folderId: 'root-4',
-      folderPath: '/HR Documents',
-      categoryIds: ['cat-6'],
-      tags: ['Training', 'Manual', 'HR'],
-      status: 'active',
-      confidentialityLevel: 'internal',
-    },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ user_id: userId, permission_level: permissionLevel }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to grant permission");
+  }
+
+  return response.json();
+};
+
+/**
+ * Revoke document permissions
+ */
+export const revokeDocumentPermission = async (
+  documentId: string,
+  permissionId: string
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/documents/${documentId}/permissions/${permissionId}`,
     {
-      id: '12',
-      name: 'Tax_Compliance_Report_2024.pdf',
-      fileType: 'pdf',
-      size: '2.1 MB',
-      uploadedBy: 'Deepak Sharma',
-      uploadedAt: '2024-12-13T15:20:00Z',
-      modifiedAt: '2024-12-13T15:20:00Z',
-      department: 'Finance',
-      folderId: 'root-3',
-      folderPath: '/Finance & Billing',
-      categoryIds: ['cat-5'],
-      tags: ['Tax', 'Compliance', 'Report'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-    },
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to revoke permission");
+  }
+};
+
+/**
+ * Get folder permissions
+ */
+export const getFolderPermissions = async (
+  folderId: string
+): Promise<Permission[]> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/folders/${folderId}/permissions`,
     {
-      id: '13',
-      name: 'Land_Acquisition_Agreement.pdf',
-      fileType: 'pdf',
-      size: '3.5 MB',
-      uploadedBy: 'Suresh Reddy',
-      uploadedAt: '2024-12-12T09:30:00Z',
-      modifiedAt: '2024-12-17T14:45:00Z',
-      department: 'Contracts & Legal',
-      folderId: 'sub-2-1-1',
-      folderPath: '/Contracts & Legal/Active Contracts/Infrastructure',
-      categoryIds: ['cat-1', 'cat-3'],
-      tags: ['Land', 'Acquisition', 'Legal'],
-      status: 'active',
-      confidentialityLevel: 'restricted',
-      version: 'v1.2',
-    },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch folder permissions");
+  }
+
+  return response.json();
+};
+
+/**
+ * Grant folder permissions
+ */
+export const grantFolderPermission = async (
+  folderId: string,
+  userId: string,
+  permissionLevel: string
+): Promise<Permission> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/folders/${folderId}/permissions`,
     {
-      id: '14',
-      name: 'Quality_Standards_Checklist.docx',
-      fileType: 'docx',
-      size: '285 KB',
-      uploadedBy: 'Meera Iyer',
-      uploadedAt: '2024-12-11T11:45:00Z',
-      modifiedAt: '2024-12-11T11:45:00Z',
-      department: 'Tender & Bidding',
-      folderId: 'sub-1-2',
-      folderPath: '/Tender & Bidding/Archive',
-      categoryIds: ['cat-4'],
-      tags: ['Quality', 'Standards', 'Checklist'],
-      status: 'archived',
-      confidentialityLevel: 'internal',
-    },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ user_id: userId, permission_level: permissionLevel }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to grant permission");
+  }
+
+  return response.json();
+};
+
+/**
+ * Revoke folder permissions
+ */
+export const revokeFolderPermission = async (
+  folderId: string,
+  permissionId: string
+): Promise<void> => {
+  const response = await fetch(
+    `${API_BASE_URL}/dms/folders/${folderId}/permissions/${permissionId}`,
     {
-      id: '15',
-      name: 'Insurance_Policy_Document.pdf',
-      fileType: 'pdf',
-      size: '1.6 MB',
-      uploadedBy: 'Rajesh Verma',
-      uploadedAt: '2024-12-10T08:15:00Z',
-      modifiedAt: '2024-12-10T08:15:00Z',
-      department: 'Finance',
-      folderId: 'root-3',
-      folderPath: '/Finance & Billing',
-      categoryIds: ['cat-5'],
-      tags: ['Insurance', 'Policy', 'Legal'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-    },
-    {
-      id: '16',
-      name: 'Contract_Template_Standard.docx',
-      fileType: 'docx',
-      size: '124 KB',
-      uploadedBy: 'Lakshmi Prasad',
-      uploadedAt: '2024-12-09T13:00:00Z',
-      modifiedAt: '2024-12-15T09:20:00Z',
-      department: 'Contracts & Legal',
-      folderId: 'sub-2-2',
-      folderPath: '/Contracts & Legal/Templates',
-      categoryIds: ['cat-1'],
-      tags: ['Template', 'Contract', 'Standard'],
-      status: 'active',
-      confidentialityLevel: 'internal',
-      version: 'v3.1',
-    },
-    {
-      id: '17',
-      name: 'Project_Cost_Estimation.xlsx',
-      fileType: 'xlsx',
-      size: '892 KB',
-      uploadedBy: 'Vikram Malhotra',
-      uploadedAt: '2024-12-08T10:30:00Z',
-      modifiedAt: '2024-12-18T16:10:00Z',
-      department: 'Finance',
-      folderId: 'root-3',
-      folderPath: '/Finance & Billing',
-      categoryIds: ['cat-5'],
-      tags: ['Cost', 'Estimation', 'Budget'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-    },
-    {
-      id: '18',
-      name: 'Road_Safety_Guidelines.pdf',
-      fileType: 'pdf',
-      size: '3.8 MB',
-      uploadedBy: 'Neha Kapoor',
-      uploadedAt: '2024-12-07T14:25:00Z',
-      modifiedAt: '2024-12-07T14:25:00Z',
-      department: 'Tender & Bidding',
-      folderId: 'sub-1-1',
-      folderPath: '/Tender & Bidding/Active Tenders',
-      categoryIds: ['cat-4'],
-      tags: ['Safety', 'Guidelines', 'Road'],
-      status: 'active',
-      confidentialityLevel: 'public',
-    },
-    {
-      id: '19',
-      name: 'Performance_Review_Template.xlsx',
-      fileType: 'xlsx',
-      size: '215 KB',
-      uploadedBy: 'Arjun Rao',
-      uploadedAt: '2024-12-06T09:40:00Z',
-      modifiedAt: '2024-12-06T09:40:00Z',
-      department: 'HR',
-      folderId: 'root-4',
-      folderPath: '/HR Documents',
-      categoryIds: ['cat-6'],
-      tags: ['Performance', 'Review', 'Template'],
-      status: 'active',
-      confidentialityLevel: 'internal',
-    },
-    {
-      id: '20',
-      name: 'NDA_Agreement_Suppliers.pdf',
-      fileType: 'pdf',
-      size: '567 KB',
-      uploadedBy: 'Pooja Joshi',
-      uploadedAt: '2024-12-05T11:15:00Z',
-      modifiedAt: '2024-12-05T11:15:00Z',
-      department: 'Contracts & Legal',
-      folderId: 'sub-2-2',
-      folderPath: '/Contracts & Legal/Templates',
-      categoryIds: ['cat-1', 'cat-3'],
-      tags: ['NDA', 'Agreement', 'Legal'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-    },
-    {
-      id: '21',
-      name: 'Tender_Evaluation_Matrix.xlsx',
-      fileType: 'xlsx',
-      size: '423 KB',
-      uploadedBy: 'Karthik Menon',
-      uploadedAt: '2024-12-04T12:50:00Z',
-      modifiedAt: '2024-12-16T10:05:00Z',
-      department: 'Tender & Bidding',
-      folderId: 'sub-1-1',
-      folderPath: '/Tender & Bidding/Active Tenders',
-      categoryIds: ['cat-2'],
-      tags: ['Tender', 'Evaluation', 'Matrix'],
-      status: 'active',
-      confidentialityLevel: 'confidential',
-    },
-    {
-      id: '22',
-      name: 'Archived_Project_Summary_2023.pdf',
-      fileType: 'pdf',
-      size: '6.4 MB',
-      uploadedBy: 'Sneha Pillai',
-      uploadedAt: '2024-11-28T16:20:00Z',
-      modifiedAt: '2024-11-28T16:20:00Z',
-      department: 'Tender & Bidding',
-      folderId: 'sub-1-2',
-      folderPath: '/Tender & Bidding/Archive',
-      categoryIds: ['cat-2', 'cat-4'],
-      tags: ['Archive', 'Project', '2023'],
-      status: 'archived',
-      confidentialityLevel: 'internal',
-    },
-  ];
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to revoke permission");
+  }
 };
