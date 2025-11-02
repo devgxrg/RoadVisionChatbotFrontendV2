@@ -45,6 +45,7 @@ export default function AskAI() {
   // UI state
   const [uploadTasks, setUploadTasks] = useState<UploadTask[]>([]);
   const [showDocPanel, setShowDocPanel] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const sseRef = useRef<EventSource | null>(null);
 
   // Load chats on mount
@@ -348,6 +349,8 @@ export default function AskAI() {
       <Sidebar
         chats={chats}
         currentChatId={currentChatId}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={setSidebarCollapsed}
         onCreateChat={handleCreateChat}
         onDeleteChat={handleDeleteChat}
         onSelectChat={setCurrentChatId}
@@ -397,18 +400,38 @@ export default function AskAI() {
         {messages.length === 0 && !isLoading ? (
           <WelcomeScreen onPromptClick={handleSendMessage} />
         ) : (
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4 max-w-4xl mx-auto">
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-card border rounded-lg px-4 py-3">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
+          <ScrollArea className="flex-1">
+            <div className="w-full h-full flex flex-col">
+              <div className="flex-1 overflow-y-auto p-4 bg-muted/50">
+                <div className="max-w-4xl mx-auto space-y-4 flex flex-col">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex w-full ${
+                        message.sender === "user"
+                          ? "justify-end"
+                          : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`w-full max-w-2xl ${
+                          message.sender === "user" ? "flex justify-end" : ""
+                        }`}
+                      >
+                        <MessageBubble message={message} />
+                      </div>
+                    </div>
+                  ))}
+                  {isLoading && (
+                    <div className="flex justify-start w-full">
+                      <div className="bg-card border rounded-lg px-4 py-3">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="h-4" />
                 </div>
-              )}
+              </div>
             </div>
           </ScrollArea>
         )}

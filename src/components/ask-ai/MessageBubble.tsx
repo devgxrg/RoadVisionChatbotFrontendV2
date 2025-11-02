@@ -42,8 +42,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   return (
     <div
-      className={`flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-5 duration-300 ${
-        message.sender === "user" ? "flex-row-reverse" : ""
+      className={`flex gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 w-full ${
+        message.sender === "user" ? "flex-row-reverse justify-end" : "justify-start"
       }`}
     >
       <div className={avatarClass}>
@@ -54,11 +54,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
       </div>
 
-      <div
-        className={`flex-1 ${
-          message.sender === "user" ? "flex flex-col items-end max-w-2xl" : ""
-        }`}
-      >
+      <div className="flex-1 flex flex-col">
         <div className={cn(bubbleClass)}>
           <div className="max-w-2xl lg:max-w-4xl w-full text-sm text-current">
             <ReactMarkdown
