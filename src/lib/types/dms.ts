@@ -45,44 +45,22 @@ export interface Folder {
 export interface Document {
   id: string;
   name: string;
-  file_type: string;
-  size: number; // bytes instead of string
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number | null;
   uploaded_by: string;
-  uploaded_at: string;
-  modified_at: string;
+  created_at: string;
+  updated_at: string;
   folder_id?: string | null;
   folder_path?: string;
   category_ids?: string[];
   tags?: string[];
   status: DocumentStatus;
   confidentiality_level: ConfidentialityLevel;
-  description?: string;
-  version?: string;
-  department?: string;
+  version: number;
 }
 
 // Request types
-export interface UploadURLRequest {
-  filename: string;
-  file_size: number;
-  mime_type: string;
-  folder_id: string;
-  category_id?: string;
-  tags?: string[];
-  confidentiality_level: ConfidentialityLevel;
-}
-
-export interface UploadURLResponse {
-  upload_url: string;
-  document_id: string;
-  storage_path: string;
-  expires_in: number;
-}
-
-export interface ConfirmUploadRequest {
-  s3_etag: string;
-  s3_version_id?: string;
-}
 
 export interface UpdateDocumentRequest {
   name?: string;
@@ -94,7 +72,7 @@ export interface UpdateDocumentRequest {
 
 export interface CreateFolderRequest {
   name: string;
-  parent_id?: string;
+  parent_folder_id?: string;
   department?: string;
 }
 

@@ -4,34 +4,19 @@ import type {
   Document,
   Folder,
   Category,
-  UploadURLRequest,
-  UploadURLResponse,
-  ConfirmUploadRequest,
   UpdateDocumentRequest,
   CreateFolderRequest,
   UpdateFolderRequest,
   Permission,
 } from "../types/dms";
 
-// Helper to convert snake_case to camelCase if needed
-const transformDocumentFromAPI = (doc: any): Document => ({
-  ...doc,
-  file_type: doc.file_type || doc.fileType,
-  uploaded_by: doc.uploaded_by || doc.uploadedBy,
-  uploaded_at: doc.uploaded_at || doc.uploadedAt,
-  modified_at: doc.modified_at || doc.modifiedAt,
-  folder_id: doc.folder_id || doc.folderId,
-  folder_path: doc.folder_path || doc.folderPath,
-  category_ids: doc.category_ids || doc.categoryIds,
-  confidentiality_level: doc.confidentiality_level || doc.confidentialityLevel,
-});
+const transformDocumentFromAPI = (doc: any): Document => {
+  return doc as Document;
+};
 
 const transformFolderFromAPI = (folder: any): Folder => ({
   ...folder,
-  parent_id: folder.parent_id || folder.parentFolderId,
-  document_count: folder.document_count || folder.documentCount,
-  created_at: folder.created_at || folder.createdAt,
-  modified_at: folder.modified_at || folder.modifiedAt,
+  parent_id: folder.parent_folder_id,
   subfolders: folder.subfolders?.map(transformFolderFromAPI) || [],
 });
 
@@ -243,7 +228,7 @@ export const getDocuments = async (options?: {
   }
 
   const data = await response.json();
-  return Array.isArray(data) ? data.map(transformDocumentFromAPI) : [];
+  return data.documents.map(transformDocumentFromAPI);
 };
 
 /**
@@ -265,96 +250,58 @@ export const getDocument = async (documentId: string): Promise<Document> => {
 };
 
 /**
- * Get presigned upload URL for a document
+ * Upload a file directly to the server
  */
-export const getUploadURL = async (
-  request: UploadURLRequest
-): Promise<UploadURLResponse> => {
-  const response = await fetch(`${API_BASE_URL}/dms/upload-url`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to get upload URL");
+export const uploadFile = async (
+  { file, folder_id, tags, confidentiality_level, category_id }: {
+    file: File;
+    folder_id: string;
+    tags?: string[];
+    confidentiality_level: string;
+    category_id?: string;
+  },
+  onProgress?: (progress: number) => void
+): Promise<Document> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder_id", folder_id);
+  if (tags?.length) {
+    formData.append("tags", tags.join(","));
+  }
+  formData.append("confidentiality_level", confidentiality_level);
+  if (category_id) {
+    formData.append("category_id", category_id);
   }
 
-  return response.json();
-};
-
-/**
- * Upload file to S3 using presigned URL
- */
-export const uploadFileToS3 = async (
-  presignedUrl: string,
-  file: File,
-  onProgress?: (progress: number) => void
-): Promise<{ etag: string; versionId?: string }> => {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
+    xhr.open("POST", `${API_BASE_URL}/dms/file-upload`);
+    xhr.setRequestHeader("Authorization", `Bearer ${localStorage.getItem("token")}`);
+
     if (onProgress) {
-      xhr.upload.addEventListener("progress", (e) => {
-        if (e.lengthComputable) {
-          const progress = (e.loaded / e.total) * 100;
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const progress = (event.loaded / event.total) * 100;
           onProgress(progress);
         }
       });
     }
 
-    xhr.addEventListener("load", () => {
+    xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        const etag = xhr.getResponseHeader("ETag") || "";
-        const versionId = xhr.getResponseHeader("x-amz-version-id");
-        resolve({ etag: etag.replace(/"/g, ""), versionId: versionId || undefined });
+        resolve(JSON.parse(xhr.responseText));
       } else {
-        reject(new Error(`Upload failed with status ${xhr.status}`));
+        reject(new Error(`Upload failed: ${xhr.statusText}`));
       }
-    });
+    };
 
-    xhr.addEventListener("error", () => {
-      reject(new Error("Upload failed"));
-    });
-
-    xhr.addEventListener("abort", () => {
-      reject(new Error("Upload canceled"));
-    });
-
-    xhr.open("PUT", presignedUrl);
-    xhr.setRequestHeader("Content-Type", file.type);
-    xhr.send(file);
+    xhr.onerror = () => {
+      reject(new Error("Upload failed due to a network error."));
+    };
+    
+    xhr.send(formData);
   });
-};
-
-/**
- * Confirm document upload completion
- */
-export const confirmUpload = async (
-  documentId: string,
-  request: ConfirmUploadRequest
-): Promise<Document> => {
-  const response = await fetch(
-    `${API_BASE_URL}/dms/documents/${documentId}/confirm-upload`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(request),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to confirm upload");
-  }
-
-  const data = await response.json();
-  return transformDocumentFromAPI(data);
 };
 
 /**
@@ -398,13 +345,11 @@ export const deleteDocument = async (documentId: string): Promise<void> => {
 };
 
 /**
- * Get document download URL
+ * Download a document directly
  */
-export const getDownloadURL = async (
-  documentId: string
-): Promise<{ download_url: string }> => {
+export const downloadDocument = async (documentId: string, filename: string) => {
   const response = await fetch(
-    `${API_BASE_URL}/dms/documents/${documentId}/download-url`,
+    `${API_BASE_URL}/dms/documents/${documentId}/download`,
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -413,10 +358,18 @@ export const getDownloadURL = async (
   );
 
   if (!response.ok) {
-    throw new Error("Failed to get download URL");
+    throw new Error("Failed to download document");
   }
 
-  return response.json();
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 /**

@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DocumentSummary, Document, Folder, AISummary, Category, ConfidentialityLevel } from "@/lib/types/dms";
-import { getUploadURL, uploadFileToS3, confirmUpload, createFolder } from "@/lib/api/dms";
+import { uploadFile, createFolder, downloadDocument, deleteDocument } from "@/lib/api/dms";
 import { 
   FileText, 
   Upload, 
@@ -87,8 +87,9 @@ const fileTypeIcons: Record<string, any> = {
   zip: File,
 };
 
-const getFileIcon = (fileType: string) => {
-  return fileTypeIcons[fileType.toLowerCase()] || FileText;
+const getFileIcon = (filename: string) => {
+  const extension = filename.split('.').pop()?.toLowerCase() || '';
+  return fileTypeIcons[extension] || FileText;
 };
 
 const formatFileSize = (bytes?: number): string => {
@@ -138,6 +139,7 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
   const [uploadConfidentiality, setUploadConfidentiality] = useState<ConfidentialityLevel>('internal');
   const [uploadTags, setUploadTags] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const [summaryDialog, setSummaryDialog] = useState<{ open: boolean; document: Document | null }>({
     open: false,
@@ -213,27 +215,17 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
 
     try {
       for (const file of uploadFiles) {
-        const uploadUrlResponse = await getUploadURL({
-          filename: file.name,
-          file_size: file.size,
-          mime_type: file.type,
-          folder_id: uploadFolderId,
-          tags: uploadTags.split(',').map(t => t.trim()).filter(Boolean),
-          confidentiality_level: uploadConfidentiality,
-        });
-
-        const { etag, versionId } = await uploadFileToS3(
-          uploadUrlResponse.upload_url,
-          file,
+        await uploadFile(
+          {
+            file,
+            folder_id: uploadFolderId,
+            tags: uploadTags.split(',').map(t => t.trim()).filter(Boolean),
+            confidentiality_level: uploadConfidentiality,
+          },
           (progress) => {
             setUploadingFiles(prev => new Map(prev).set(file.name, progress));
           }
         );
-
-        await confirmUpload(uploadUrlResponse.document_id, {
-          s3_etag: etag,
-          s3_version_id: versionId,
-        });
       }
 
       toast({ title: "Files uploaded successfully" });
@@ -256,7 +248,7 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
     try {
       await createFolder({
         name: newFolderName,
-        parent_id: createFolderDialog.parentId || undefined,
+        parent_folder_id: createFolderDialog.parentId || undefined,
       });
       toast({ title: "Folder created successfully" });
       queryClient.invalidateQueries({ queryKey: ["dms-folders"] });
@@ -264,6 +256,17 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
       setNewFolderName('');
     } catch (error) {
       toast({ title: "Failed to create folder", variant: "destructive" });
+    }
+  };
+
+  const handleDownloadDocument = async (docId: string, filename: string) => {
+    try {
+      setIsDownloading(docId);
+      await downloadDocument(docId, filename);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to download document", variant: "destructive" });
+    } finally {
+      setIsDownloading(null);
     }
   };
 
@@ -349,7 +352,7 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
     const matchesSearch = searchQuery ? doc.name.toLowerCase().includes(searchQuery.toLowerCase()) : true;
     const matchesCategory = categoryFilter !== 'all' ? (doc.category_ids?.includes(categoryFilter) ?? false) : true;
     const matchesDepartment = departmentFilter !== 'all' ? doc.department === departmentFilter : true;
-    const matchesFileType = fileTypeFilter !== 'all' ? doc.file_type === fileTypeFilter : true;
+    const matchesFileType = fileTypeFilter !== 'all' ? doc.mime_type.includes(fileTypeFilter) : true;
     return matchesFolder && matchesSearch && matchesCategory && matchesDepartment && matchesFileType;
   });
 
@@ -358,10 +361,10 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
     switch (sortBy) {
       case 'name-asc': return a.name.localeCompare(b.name);
       case 'name-desc': return b.name.localeCompare(a.name);
-      case 'modified-desc': return new Date(b.modified_at).getTime() - new Date(a.modified_at).getTime();
-      case 'modified-asc': return new Date(a.modified_at).getTime() - new Date(b.modified_at).getTime();
-      case 'size-desc': return (b.size ?? 0) - (a.size ?? 0);
-      case 'size-asc': return (a.size ?? 0) - (b.size ?? 0);
+      case 'modified-desc': return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      case 'modified-asc': return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+      case 'size-desc': return (b.size_bytes ?? 0) - (a.size_bytes ?? 0);
+      case 'size-asc': return (a.size_bytes ?? 0) - (b.size_bytes ?? 0);
       default: return 0;
     }
   });
@@ -581,9 +584,9 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
               <SelectContent className="bg-popover z-50">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="pdf">PDF</SelectItem>
-                <SelectItem value="doc">Word</SelectItem>
-                <SelectItem value="xls">Excel</SelectItem>
-                <SelectItem value="ppt">PowerPoint</SelectItem>
+                <SelectItem value="document">Word</SelectItem>
+                <SelectItem value="sheet">Excel</SelectItem>
+                <SelectItem value="presentation">PowerPoint</SelectItem>
               </SelectContent>
             </Select>
 
@@ -644,7 +647,7 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
             // Grid View
             <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
               {sortedDocuments.map((doc) => {
-                const FileIcon = getFileIcon(doc.file_type);
+                const FileIcon = getFileIcon(doc.original_filename);
                 return (
                   <Card key={doc.id} className="hover:shadow-md transition-shadow cursor-pointer group">
                     <CardContent className="p-4">
@@ -658,10 +661,10 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
                       </div>
                       
                       <h3 className="font-medium text-sm mb-1 line-clamp-2">{doc.name}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">{formatFileSize(doc.size_bytes)}</p>
+                      <p className="text-xs text-muted-foreground mb-2">{formatFileSize(doc.size_bytes ?? 0)}</p>
                       
                       <div className="flex items-center gap-1 mb-2">
-                        <Badge variant="outline" className="text-xs">{doc.file_type.toUpperCase()}</Badge>
+                        <Badge variant="outline" className="text-xs">{(doc.original_filename.split('.').pop() || '').toUpperCase()}</Badge>
                         <Badge variant="outline" className={cn("text-xs", confidentialityColors[doc.confidentiality_level])}>
                           {doc.confidentiality_level}
                         </Badge>
@@ -680,7 +683,7 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
                         <Button size="sm" variant="outline" className="h-7 w-7 p-0">
                           <Eye className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="outline" className="h-7 w-7 p-0">
+                        <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => handleDownloadDocument(doc.id, doc.original_filename)} disabled={isDownloading === doc.id}>
                           <Download className="h-3 w-3" />
                         </Button>
                       </div>
@@ -695,7 +698,7 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
               <CardContent className="p-0">
                 <div className="divide-y">
                   {sortedDocuments.map((doc) => {
-                    const FileIcon = getFileIcon(doc.file_type);
+                    const FileIcon = getFileIcon(doc.original_filename);
                     return (
                       <div key={doc.id} className="p-4 hover:bg-muted/50 transition-colors overflow-hidden">
                         <div className="flex items-center gap-4 min-w-0">
@@ -706,12 +709,12 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
                             <div className="flex-1 min-w-0 overflow-hidden">
                               <p className="font-medium truncate">{doc.name}</p>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap">
-                                <Badge variant="outline" className="text-xs shrink-0">{doc.file_type.toUpperCase()}</Badge>
-                                <span className="shrink-0">{formatFileSize(doc.size_bytes)}</span>
+                                <Badge variant="outline" className="text-xs shrink-0">{(doc.original_filename.split('.').pop() || '').toUpperCase()}</Badge>
+                                <span className="shrink-0">{formatFileSize(doc.size_bytes ?? 0)}</span>
                                 <span className="shrink-0">•</span>
                                 <span className="truncate">{doc.uploaded_by}</span>
                                 <span className="shrink-0">•</span>
-                                <span className="shrink-0">{new Date(doc.modified_at).toLocaleDateString()}</span>
+                                <span className="shrink-0">{new Date(doc.updated_at).toLocaleDateString()}</span>
                               </div>
                             </div>
                           </div>
@@ -735,7 +738,7 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
                             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleDownloadDocument(doc.id, doc.original_filename)} disabled={isDownloading === doc.id}>
                               <Download className="h-4 w-4" />
                             </Button>
                             <DropdownMenu>

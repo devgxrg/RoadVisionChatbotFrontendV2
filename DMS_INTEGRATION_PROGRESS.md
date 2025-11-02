@@ -168,7 +168,7 @@ const handleRenameFolder = async (folderId: string, newName: string) => {
 
 ### 3. ✅ Wire Up Upload Functionality (Commit: [current])
 
-**Current State:** Upload workflow is fully integrated with the backend API.
+**Current State:** Upload workflow is fully integrated with the backend API using direct file uploads.
 
 **Implementation Steps:**
 
@@ -178,33 +178,20 @@ const handleUpload = async () => {
   if (uploadFiles.length === 0 || !uploadFolderId) return;
 
   try {
-    // For each file, execute the 3-step upload process
+    // For each file, execute the direct upload process
     for (const file of uploadFiles) {
-      // Step 1: Get presigned URL from our backend
-      const uploadUrlResponse = await getUploadURL({
-        filename: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        folder_id: uploadFolderId,
-        tags: uploadTags.split(',').map(t => t.trim()).filter(Boolean),
-        confidentiality_level: uploadConfidentiality,
-      });
-
-      // Step 2: Upload the file directly to S3 using the presigned URL
-      const { etag, versionId } = await uploadFileToS3(
-        uploadUrlResponse.upload_url, // Use corrected field name
-        file,
+      await uploadFile(
+        {
+          file,
+          folder_id: uploadFolderId,
+          tags: uploadTags.split(',').map(t => t.trim()).filter(Boolean),
+          confidentiality_level: uploadConfidentiality,
+        },
         (progress) => {
           // Update progress state for UI
           setUploadingFiles(prev => new Map(prev).set(file.name, progress));
         }
       );
-
-      // Step 3: Confirm the upload with our backend
-      await confirmUpload(uploadUrlResponse.document_id, { // Use document_id
-        s3_etag: etag,
-        s3_version_id: versionId,
-      });
     }
 
     // On success, refresh data and close dialog
@@ -270,16 +257,14 @@ All endpoints are at `${API_BASE_URL}/dms/` and require `Authorization: Bearer $
 - `GET /documents/{id}` → Get document details
 - `PATCH /documents/{id}` → Update metadata
 - `DELETE /documents/{id}` → Delete document
-- `GET /documents/{id}/download-url` → Get download link
+- `GET /documents/{id}/download` → Download file directly
 - `GET /documents/{id}/versions` → Version history
 - `GET /documents/{id}/permissions` → List permissions
 - `POST /documents/{id}/permissions` → Grant permission
 - `DELETE /documents/{id}/permissions/{perm_id}` → Revoke permission
 
 ### Upload Flow
-- `POST /upload-url` → Get presigned URL + upload_id
-- `PUT {presigned_url}` → Upload file to S3 (via XHR)
-- `POST /documents/{id}/confirm-upload` → Confirm completion
+- `POST /file-upload` → Directly upload file with metadata
 
 ## Testing Checklist
 
@@ -289,7 +274,7 @@ All endpoints are at `${API_BASE_URL}/dms/` and require `Authorization: Bearer $
 - [ ] Sort documents
 - [ ] Upload file and see it in the list
 - [ ] Delete document
-- [ ] Download document
+- [x] Download document
 - [ ] Rename document
 - [ ] Create folder
 - [ ] Delete folder
