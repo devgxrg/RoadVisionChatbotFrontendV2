@@ -1,0 +1,208 @@
+{
+  "endpoints": [
+    {
+      "path": "/api/v1/tenderiq/tenders",
+      "method": "GET",
+      "summary": "Get tenders with optional date filtering",
+      "description": "Retrieves tenders filtered by specific date(s) or date ranges. Supports querying a single date, date ranges (last N days), or all historical data.",
+      "tags": ["TenderIQ"],
+      "parameters": [
+        {
+          "name": "date",
+          "in": "query",
+          "description": "Specific date to retrieve tenders for (format: YYYY-MM-DD). Returns all tenders scraped on this date.",
+          "schema": {
+            "type": "string",
+            "format": "date",
+            "example": "2024-11-03"
+          },
+          "required": false
+        },
+        {
+          "name": "date_range",
+          "in": "query",
+          "description": "Predefined date range filter. Options: 'last_1_day', 'last_5_days', 'last_7_days', 'last_30_days'",
+          "schema": {
+            "type": "string",
+            "enum": ["last_1_day", "last_5_days", "last_7_days", "last_30_days"],
+            "example": "last_5_days"
+          },
+          "required": false
+        },
+        {
+          "name": "include_all_dates",
+          "in": "query",
+          "description": "If true, returns all historical tenders regardless of date. Takes precedence over 'date' and 'date_range' parameters.",
+          "schema": {
+            "type": "boolean",
+            "default": false
+          },
+          "required": false
+        },
+        {
+          "name": "category",
+          "in": "query",
+          "description": "Filter by query category/name (e.g., 'Civil', 'Electrical')",
+          "schema": {
+            "type": "string",
+            "example": "Civil"
+          },
+          "required": false
+        },
+        {
+          "name": "location",
+          "in": "query",
+          "description": "Filter by location/city",
+          "schema": {
+            "type": "string",
+            "example": "Mumbai"
+          },
+          "required": false
+        },
+        {
+          "name": "min_value",
+          "in": "query",
+          "description": "Minimum tender value in crore",
+          "schema": {
+            "type": "number",
+            "example": 300
+          },
+          "required": false
+        },
+        {
+          "name": "max_value",
+          "in": "query",
+          "description": "Maximum tender value in crore",
+          "schema": {
+            "type": "number"
+          },
+          "required": false
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successfully retrieved tenders",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenders": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Tender"
+                    }
+                  },
+                  "total_count": {
+                    "type": "integer",
+                    "description": "Total number of tenders returned"
+                  },
+                  "filtered_by": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "date_range": {
+                        "type": "string"
+                      },
+                      "include_all_dates": {
+                        "type": "boolean"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "available_dates": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "description": "List of all available scrape dates in the system"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized - missing or invalid token"
+        }
+      }
+    },
+    {
+      "path": "/api/v1/tenderiq/dates",
+      "method": "GET",
+      "summary": "Get available scrape dates",
+      "description": "Returns a list of all available scrape dates with metadata (count of tenders per date, latest first)",
+      "tags": ["TenderIQ"],
+      "responses": {
+        "200": {
+          "description": "Successfully retrieved available dates",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dates": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "example": "2024-11-03"
+                        },
+                        "date_str": {
+                          "type": "string",
+                          "example": "November 3, 2024"
+                        },
+                        "run_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2024-11-03T10:30:00Z"
+                        },
+                        "tender_count": {
+                          "type": "integer",
+                          "example": 45
+                        },
+                        "is_latest": {
+                          "type": "boolean",
+                          "description": "Whether this is the most recent scrape date",
+                          "example": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "implementation_notes": {
+    "description": "Suggested TenderIQ API enhancements for date filtering and historical data access",
+    "backend_changes_required": [
+      "Modify daily tenders storage to maintain historical records by date",
+      "Add database query support for filtering by date ranges",
+      "Implement caching for available dates list",
+      "Update authentication to ensure proper token validation"
+    ],
+    "frontend_integration": "Frontend will use new /api/v1/tenderiq/dates endpoint to populate dropdown with available scrape dates, and /api/v1/tenderiq/tenders endpoint to fetch filtered results based on user selection",
+    "use_cases": [
+      "User selects 'Last 5 days' to see all tenders from the past 5 days",
+      "User selects specific date from dropdown to see only tenders from that day",
+      "User selects 'All Dates' to view the entire historical tender database",
+      "Default behavior loads the latest scrape date"
+    ]
+  }
+}

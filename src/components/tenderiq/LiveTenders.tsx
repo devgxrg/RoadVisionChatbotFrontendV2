@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Search, Filter, RefreshCw, ExternalLink, MessageSquare, MapPin, Calendar, IndianRupee, Loader2 } from "lucide-react";
 import { Tender } from "@/lib/types/tenderiq";
-import { fetchDailyTenders, filterTendersByCategory, getAvailableCategories, getAvailableLocations } from "@/lib/api/tenderiq";
+import { fetchDailyTenders, fetchFilteredTenders, filterTendersByCategory, getAvailableCategories, getAvailableLocations } from "@/lib/api/tenderiq";
 import { useToast } from "@/hooks/use-toast";
+import DateSelector from "./DateSelector";
 
 interface LiveTendersProps {
   onBack: () => void;
@@ -20,18 +21,37 @@ const LiveTenders = ({ onBack }: LiveTendersProps) => {
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [minValue, setMinValue] = useState("300");
   const [maxValue, setMaxValue] = useState("");
+  const [selectedDate, setSelectedDate] = useState<string>();
+  const [selectedDateRange, setSelectedDateRange] = useState<string>();
+  const [includeAllDates, setIncludeAllDates] = useState(false);
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadTenders = async () => {
     setLoading(true);
     try {
-      const data = await fetchDailyTenders();
-      setTenders(data);
+      // Use new filtered API if date filters are set, otherwise use legacy endpoint
+      if (selectedDate || selectedDateRange || includeAllDates) {
+        const minVal = minValue ? parseFloat(minValue) : undefined;
+        const maxVal = maxValue ? parseFloat(maxValue) : undefined;
+        const response = await fetchFilteredTenders({
+          date: selectedDate,
+          date_range: selectedDateRange as any,
+          include_all_dates: includeAllDates,
+          category: selectedCategory !== "all" ? selectedCategory : undefined,
+          location: selectedLocation !== "all" ? selectedLocation : undefined,
+          min_value: minVal,
+          max_value: maxVal,
+        });
+        setTenders(response.tenders);
+      } else {
+        const data = await fetchDailyTenders();
+        setTenders(data);
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to load daily tenders. Please try again.",
+        description: "Failed to load tenders. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -39,9 +59,15 @@ const LiveTenders = ({ onBack }: LiveTendersProps) => {
     }
   };
 
+  const handleDateSelect = (date: string | null, dateRange: string | null, includeAll: boolean) => {
+    setSelectedDate(date || undefined);
+    setSelectedDateRange(dateRange || undefined);
+    setIncludeAllDates(includeAll);
+  };
+
   useEffect(() => {
     loadTenders();
-  }, []);
+  }, [selectedDate, selectedDateRange, includeAllDates]);
 
   // Extract unique categories and locations
   const categories = useMemo(() => {
@@ -204,13 +230,16 @@ const LiveTenders = ({ onBack }: LiveTendersProps) => {
       </Card>
 
       {/* Results Summary */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
           Showing <span className="font-semibold">{filteredTenders.length}</span> of <span className="font-semibold">{tenders.length}</span> tenders
         </p>
-        <Badge variant="secondary">
-          Last Updated: Today
-        </Badge>
+        <DateSelector
+          onDateSelect={handleDateSelect}
+          selectedDate={selectedDate}
+          selectedDateRange={selectedDateRange}
+          includeAllDates={includeAllDates}
+        />
       </div>
 
       {/* Loading State */}
