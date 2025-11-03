@@ -408,13 +408,35 @@ export function DMSUI({ summary, documents, folders, categories }: DMSUIProps) {
     return breadcrumbs;
   };
 
+  const folderMap = new Map<string, Folder>();
+  const populateFolderMap = (foldersToMap: Folder[]) => {
+    for (const folder of foldersToMap) {
+      folderMap.set(folder.id, folder);
+      if (folder.subfolders && folder.subfolders.length > 0) {
+        populateFolderMap(folder.subfolders);
+      }
+    }
+  };
+  populateFolderMap(folders);
+
   // Filter documents
   const filteredDocuments = documents.filter(doc => {
     const matchesFolder = currentFolder ? doc.folder_id === currentFolder : true;
     const matchesSearch = searchQuery ? doc.name.toLowerCase().includes(searchQuery.toLowerCase()) : true;
     const matchesCategory = categoryFilter !== 'all' ? (doc.category_ids?.includes(categoryFilter) ?? false) : true;
-    const matchesDepartment = departmentFilter !== 'all' ? doc.department === departmentFilter : true;
-    const matchesFileType = fileTypeFilter !== 'all' ? doc.mime_type.includes(fileTypeFilter) : true;
+    
+    const folder = doc.folder_id ? folderMap.get(doc.folder_id) : null;
+    const matchesDepartment = departmentFilter !== 'all' ? folder?.department === departmentFilter : true;
+
+    const matchesFileType = (() => {
+      if (fileTypeFilter === 'all') return true;
+      if (fileTypeFilter === 'pdf') return doc.mime_type === 'application/pdf';
+      if (fileTypeFilter === 'document') return doc.mime_type.includes('word');
+      if (fileTypeFilter === 'sheet') return doc.mime_type.includes('excel') || doc.mime_type.includes('spreadsheet');
+      if (fileTypeFilter === 'presentation') return doc.mime_type.includes('powerpoint') || doc.mime_type.includes('presentation');
+      return doc.mime_type.includes(fileTypeFilter);
+    })();
+    
     return matchesFolder && matchesSearch && matchesCategory && matchesDepartment && matchesFileType;
   });
 
