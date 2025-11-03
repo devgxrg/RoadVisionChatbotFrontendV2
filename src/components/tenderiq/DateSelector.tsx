@@ -12,6 +12,26 @@ import { Calendar, Loader2, ChevronDown } from "lucide-react";
 import { fetchAvailableDates, AvailableDate } from "@/lib/api/tenderiq";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Format a date string (ISO 8601 or timestamp) to a readable format
+ * Uses run_at timestamp as the reliable source instead of date_str from backend
+ */
+const formatDateFromRunAt = (runAt: string): string => {
+  try {
+    const date = new Date(runAt);
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+    };
+    return date.toLocaleDateString('en-US', options);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Unknown Date';
+  }
+};
+
 interface DateSelectorProps {
   onDateSelect: (date: string | null, dateRange: string | null, includeAll: boolean) => void;
   selectedDate?: string;
@@ -75,7 +95,9 @@ const DateSelector = ({
     } else if (selectedDate) {
       const selectedDateObj = availableDates.find(d => d.date === selectedDate);
       if (selectedDateObj) {
-        setDisplayLabel(`${selectedDateObj.date_str} (${selectedDateObj.tender_count} tenders)`);
+        // Use run_at as reliable source for formatting instead of date_str
+        const formattedDate = formatDateFromRunAt(selectedDateObj.run_at);
+        setDisplayLabel(`${formattedDate} (${selectedDateObj.tender_count} tenders)`);
       } else {
         setDisplayLabel(selectedDate);
       }
@@ -143,11 +165,12 @@ const DateSelector = ({
             <DropdownMenuLabel className="font-semibold">Specific Dates</DropdownMenuLabel>
             {availableDates.map((dateObj) => (
               <DropdownMenuItem
-                key={dateObj.date}
+                key={`${dateObj.date}-${dateObj.run_at}`}
                 onClick={() => handleDateSelect(dateObj.date)}
               >
                 <div className="flex justify-between w-full">
-                  <span>{dateObj.date_str}</span>
+                  {/* Use run_at as reliable source instead of date_str */}
+                  <span>{formatDateFromRunAt(dateObj.run_at)}</span>
                   <span className="text-xs text-muted-foreground ml-4">
                     ({dateObj.tender_count})
                   </span>
