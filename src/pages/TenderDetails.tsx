@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Star, FileText, AlertCircle, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { ArrowLeft, Download, Star, FileText, AlertCircle, MapPin, Calendar, DollarSign, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,12 +12,88 @@ export default function TenderDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const tender = getTenderById(id || '');
+  const [tender, setTender] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTender = async () => {
+      setLoading(true);
+      try {
+        // Try to fetch from backend API first
+        const response = await fetch(`/api/tenderiq/tenders/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Transform API response if needed to match expected format
+          console.log(data);
+          setTender({
+            ...data,
+            documents: data.documents || [],
+            category: data.category || 'Uncategorized',
+            emd: data.emd || 0,
+            bidSecurity: data.bidSecurity || 0,
+            ePublishedDate: data.ePublishedDate || new Date().toISOString().split('T')[0],
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.log('API fetch failed, falling back to sample data');
+      }
+
+      // // Fallback to sample data for demo/development
+      // const sampleTender = getTenderById(id || '');
+      // if (sampleTender) {
+      //   // Map sample tender format to expected format
+      //   const mappedTender = {
+      //     id: sampleTender.id,
+      //     title: sampleTender.title,
+      //     authority: sampleTender.authority,
+      //     value: sampleTender.value,
+      //     dueDate: sampleTender.dueDate,
+      //     status: sampleTender.status,
+      //     category: sampleTender.category,
+      //     emd: sampleTender.emd,
+      //     bidSecurity: sampleTender.bidSecurity,
+      //     location: sampleTender.location,
+      //     length: sampleTender.length,
+      //     costPerKm: sampleTender.costPerKm,
+      //     ePublishedDate: sampleTender.ePublishedDate,
+      //     documents: sampleTender.documents,
+      //     riskLevel: sampleTender.riskLevel,
+      //   };
+      //   setTender(mappedTender);
+      // } else {
+      //   setTender(null);
+      // }
+      setLoading(false);
+    };
+
+    fetchTender();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">Loading tender details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!tender) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Tender not found</p>
+        <div className="text-center space-y-4">
+          <p className="text-lg font-semibold">Tender not found</p>
+          <p className="text-muted-foreground text-sm">
+            The tender you're looking for doesn't exist or may have been removed.
+          </p>
+          <Button onClick={() => navigate('/tenderiq')} variant="outline">
+            Back to TenderIQ
+          </Button>
+        </div>
       </div>
     );
   }
