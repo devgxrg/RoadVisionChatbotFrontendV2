@@ -49,8 +49,8 @@ const App = () => (
           <Route path="/dmsiq" element={<ProtectedRoute><DMS /></ProtectedRoute>} />
           
           {/* Protected TenderIQ Routes */}
-          <Route path="/tenderiq" element={<ProtectedRoute><AppLayout><TenderIQ /></AppLayout></ProtectedRoute>} />
-          <Route path="/viewtender/:id" element={<ProtectedRoute><AppLayout><TenderDetails /></AppLayout></ProtectedRoute>} />
+          <Route path="/tenderiq/*" element={<ProtectedRoute><AppLayout><TenderIQ /></AppLayout></ProtectedRoute>} />
+          <Route path="/tenderiq/view/:id" element={<ProtectedRoute><AppLayout><TenderDetails /></AppLayout></ProtectedRoute>} />
           <Route path="/analyze/:id" element={<ProtectedRoute><AppLayout><AnalyzeTender /></AppLayout></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />

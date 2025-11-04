@@ -308,7 +308,7 @@ const LiveTenders = ({ onBack }: LiveTendersProps) => {
                           <Button
                             size="sm"
                             className="hover-scale"
-                            onClick={() => navigate(`/viewtender/${tender.id}`)}
+                            onClick={() => navigate(`/tenderiq/view/${tender.id}`)}
                           >
                             <ExternalLink className="h-4 w-4 mr-2" />
                             View Tender

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ import DraftRFP from "@/components/tenderiq/DraftRFP";
 import TenderHistory from "@/components/tenderiq/TenderHistory";
 
 const TenderIQ = () => {
-  const [currentModule, setCurrentModule] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [hasAnalyzedTender, setHasAnalyzedTender] = useState(false);
 
   const handleAnalyzed = () => {
@@ -20,36 +21,18 @@ const TenderIQ = () => {
   };
 
   const handleBack = () => {
-    setCurrentModule(null);
+    navigate("/tenderiq");
     setHasAnalyzedTender(false);
   };
 
-  // Render module-specific views
-  if (currentModule === "analyze") {
+  const AnalyzeTenderModule = () => {
     if (!hasAnalyzedTender) {
       return <TenderUpload onAnalyzed={handleAnalyzed} />;
     }
     return <TenderAnalysisView onBack={handleBack} />;
-  }
+  };
 
-  if (currentModule === "live") {
-    return <LiveTenders onBack={handleBack} />;
-  }
-
-  if (currentModule === "compare") {
-    return <TenderCompare onBack={handleBack} />;
-  }
-
-  if (currentModule === "evaluate") {
-    return <BidEvaluate onBack={handleBack} />;
-  }
-
-  if (currentModule === "draft") {
-    return <DraftRFP onBack={handleBack} />;
-  }
-
-  // Module Selection View
-  return (
+  const ModuleSelectionView = () => (
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-4">
@@ -87,7 +70,7 @@ const TenderIQ = () => {
       {/* Module Cards Grid */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Analyze Tender */}
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentModule("analyze")}>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("analyze")}>
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -106,7 +89,7 @@ const TenderIQ = () => {
         </Card>
 
         {/* Live Tenders */}
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentModule("live")}>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("live")}>
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -125,7 +108,7 @@ const TenderIQ = () => {
         </Card>
 
         {/* Compare Tenders */}
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentModule("compare")}>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("compare")}>
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -144,7 +127,7 @@ const TenderIQ = () => {
         </Card>
 
         {/* Evaluate Bid */}
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentModule("evaluate")}>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("evaluate")}>
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -163,7 +146,7 @@ const TenderIQ = () => {
         </Card>
 
         {/* Draft RFP */}
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentModule("draft")}>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("draft")}>
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -192,6 +175,17 @@ const TenderIQ = () => {
         <TenderHistory />
       </div>
     </div>
+  );
+
+  return (
+    <Routes>
+      <Route index element={<ModuleSelectionView />} />
+      <Route path="analyze" element={<AnalyzeTenderModule />} />
+      <Route path="live" element={<LiveTenders onBack={handleBack} />} />
+      <Route path="compare" element={<TenderCompare onBack={handleBack} />} />
+      <Route path="evaluate" element={<BidEvaluate onBack={handleBack} />} />
+      <Route path="draft" element={<DraftRFP onBack={handleBack} />} />
+    </Routes>
   );
 };
 
