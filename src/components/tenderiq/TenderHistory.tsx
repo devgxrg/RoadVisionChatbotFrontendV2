@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { FileText, Building, Calendar, IndianRupee, Search, Eye, Download, MoreH
 import { HistoryTender } from "@/lib/types/tenderiq";
 
 const TenderHistory = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -225,7 +227,7 @@ const TenderHistory = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/tenderiq/view/${tender.id}`)}>
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>

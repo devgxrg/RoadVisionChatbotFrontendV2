@@ -57,3 +57,29 @@ export interface EvaluationResult {
   providedDocuments: BidDocument[];
   recommendations: string[];
 }
+
+export interface TenderDocument {
+  id: string;
+  name: string;
+  type: "pdf" | "doc" | "excel";
+  pages?: number;
+  isAIGenerated?: boolean;
+}
+
+export interface TenderDetailsType {
+  id: string;
+  title: string;
+  authority: string;
+  value: number;
+  dueDate: string;
+  status: "live" | "won" | "lost" | "submitted" | "under evaluation";
+  category: string;
+  emd: number;
+  bidSecurity: number;
+  location: string;
+  length?: string;
+  costPerKm?: number;
+  ePublishedDate: string;
+  documents: TenderDocument[];
+  riskLevel?: "Low" | "Medium" | "High";
+}

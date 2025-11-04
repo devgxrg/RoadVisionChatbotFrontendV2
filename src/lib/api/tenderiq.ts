@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '@/lib/config/api';
-import { Tender } from '@/lib/types/tenderiq';
+import { Tender, TenderDetailsType } from '@/lib/types/tenderiq';
 
 interface TenderApiResponse {
   id: string;
@@ -255,6 +255,42 @@ export const fetchFilteredTenders = async (params: {
     };
   } catch (error) {
     console.error('Error in fetchFilteredTenders:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch tender details by ID
+ * @param id - The ID of the tender to fetch
+ * @returns The detailed tender information
+ */
+export const fetchTenderById = async (id: string): Promise<TenderDetailsType> => {
+  console.log(`Fetching tender details for id: ${id}`);
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE_URL}/tenderiq/tenders/${id}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      throw new Error(`Failed to fetch tender details: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Tender details API response:', data);
+    
+    // The API response is assumed to match the TenderDetailsType.
+    // Add transformation logic here if the API shape is different.
+    return data as TenderDetailsType;
+  } catch (error) {
+    console.error(`Error in fetchTenderById for id ${id}:`, error);
     throw error;
   }
 };
