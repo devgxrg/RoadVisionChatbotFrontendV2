@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
       },
+      "/docs": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/docs/, "/docs"),
+      },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

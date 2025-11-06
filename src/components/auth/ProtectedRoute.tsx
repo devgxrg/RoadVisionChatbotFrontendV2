@@ -1,11 +1,13 @@
 /**
  * Protected Route Component
  * Redirects to auth page if user is not authenticated
+ * Uses Redux for auth state management
  */
 
-import { useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { isAuthenticated } from "@/lib/api/auth";
+import { useEffect } from "react";
+import { RootState } from "@/lib/redux/store";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,14 +15,15 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
       navigate("/auth");
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
-  if (!isAuthenticated()) {
+  if (!isAuthenticated) {
     return null;
   }
 

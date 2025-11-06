@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/lib/config/api";
+import { getAuthHeaders, getTokenFromRedux } from "@/lib/api/authHelper";
 import type {
   DocumentSummary,
   Document,
@@ -26,7 +27,7 @@ const transformFolderFromAPI = (folder: any): Folder => ({
 export const getDMSSummary = async (): Promise<DocumentSummary> => {
   const response = await fetch(`${API_BASE_URL}/dms/summary`, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
   });
 
@@ -49,7 +50,7 @@ export const getDMSSummary = async (): Promise<DocumentSummary> => {
 export const getCategories = async (): Promise<Category[]> => {
   const response = await fetch(`${API_BASE_URL}/dms/categories`, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
   });
 
@@ -77,7 +78,7 @@ export const getFolders = async (options?: {
     `${API_BASE_URL}/dms/folders?${params.toString()}`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -96,7 +97,7 @@ export const getFolders = async (options?: {
 export const getFolder = async (folderId: string): Promise<Folder> => {
   const response = await fetch(`${API_BASE_URL}/dms/folders/${folderId}`, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
   });
 
@@ -118,7 +119,7 @@ export const createFolder = async (
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
     body: JSON.stringify(request),
   });
@@ -142,7 +143,7 @@ export const updateFolder = async (
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
     body: JSON.stringify(request),
   });
@@ -162,7 +163,7 @@ export const deleteFolder = async (folderId: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/dms/folders/${folderId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
   });
 
@@ -182,7 +183,7 @@ export const moveFolder = async (
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
     body: JSON.stringify({ parent_id: parentId }),
   });
@@ -218,7 +219,7 @@ export const getDocuments = async (options?: {
     `${API_BASE_URL}/dms/documents?${params.toString()}`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -237,7 +238,7 @@ export const getDocuments = async (options?: {
 export const getDocument = async (documentId: string): Promise<Document> => {
   const response = await fetch(`${API_BASE_URL}/dms/documents/${documentId}`, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
   });
 
@@ -277,7 +278,7 @@ export const uploadFile = async (
     const xhr = new XMLHttpRequest();
 
     xhr.open("POST", `${API_BASE_URL}/dms/file-upload`);
-    xhr.setRequestHeader("Authorization", `Bearer ${localStorage.getItem("token")}`);
+    xhr.setRequestHeader("Authorization", `Bearer ${getTokenFromRedux() || ""}`);
 
     if (onProgress) {
       xhr.upload.addEventListener("progress", (event) => {
@@ -315,7 +316,7 @@ export const updateDocument = async (
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
     body: JSON.stringify(request),
   });
@@ -335,7 +336,7 @@ export const deleteDocument = async (documentId: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/dms/documents/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      ...getAuthHeaders(),
     },
   });
 
@@ -352,7 +353,7 @@ export const downloadDocument = async (documentId: string, filename: string) => 
     `${API_BASE_URL}/dms/documents/${documentId}/download`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -380,7 +381,7 @@ export const getDocumentPreviewUrl = async (documentId: string): Promise<string>
     `${API_BASE_URL}/dms/documents/${documentId}/download`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -404,7 +405,7 @@ export const getDocumentVersions = async (
     `${API_BASE_URL}/dms/documents/${documentId}/versions`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -427,7 +428,7 @@ export const getDocumentPermissions = async (
     `${API_BASE_URL}/dms/documents/${documentId}/permissions`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -453,7 +454,7 @@ export const grantDocumentPermission = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({ user_id: userId, permission_level: permissionLevel }),
     }
@@ -478,7 +479,7 @@ export const revokeDocumentPermission = async (
     {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -498,7 +499,7 @@ export const getFolderPermissions = async (
     `${API_BASE_URL}/dms/folders/${folderId}/permissions`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );
@@ -524,7 +525,7 @@ export const grantFolderPermission = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({ user_id: userId, permission_level: permissionLevel }),
     }
@@ -549,7 +550,7 @@ export const revokeFolderPermission = async (
     {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        ...getAuthHeaders(),
       },
     }
   );

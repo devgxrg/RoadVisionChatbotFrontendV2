@@ -71,23 +71,26 @@ export async function getCurrentUser(token: string): Promise<User> {
 
 /**
  * Store token in localStorage
+ * Uses 'token' key to match other API modules (analyze.ts, tenderiq.ts, dms.ts, etc.)
  */
 export function storeToken(token: string): void {
-  localStorage.setItem('auth_token', token);
+  localStorage.setItem('token', token);
 }
 
 /**
  * Get token from localStorage
+ * Uses 'token' key to match other API modules (analyze.ts, tenderiq.ts, dms.ts, etc.)
  */
 export function getToken(): string | null {
-  return localStorage.getItem('auth_token');
+  return localStorage.getItem('token');
 }
 
 /**
  * Remove token from localStorage
+ * Uses 'token' key to match other API modules (analyze.ts, tenderiq.ts, dms.ts, etc.)
  */
 export function removeToken(): void {
-  localStorage.removeItem('auth_token');
+  localStorage.removeItem('token');
 }
 
 /**

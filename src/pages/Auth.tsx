@@ -3,8 +3,9 @@
  * Handles both login and registration
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,13 +13,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { login, register, storeToken } from "@/lib/api/auth";
+import { useAuth } from "@/hooks/useAuth";
 import { RegisterRequest } from "@/lib/types/auth";
+import { RootState } from "@/lib/redux/store";
 
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, register, isLoading, error } = useAuth();
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -37,46 +47,35 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     try {
-      const response = await login(loginEmail, loginPassword);
-      storeToken(response.access_token);
-      
+      await login(loginEmail, loginPassword);
+
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
-
-      navigate("/");
+      // Navigation happens automatically via useEffect when isAuthenticated changes
     } catch (error) {
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     try {
       await register(registerData);
-      
-      // Auto-login after successful registration
-      const loginResponse = await login(registerData.email, registerData.password);
-      storeToken(loginResponse.access_token);
 
       toast({
         title: "Registration successful",
         description: "You have been automatically logged in.",
       });
-
-      navigate("/");
+      // Navigation happens automatically via useEffect when isAuthenticated changes
     } catch (error) {
       toast({
         title: "Registration failed",

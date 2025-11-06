@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAvailableDates, AvailableDate } from '@/lib/api/tenderiq';
+import { fetchAvailableDates, getLatestScrapedDate, AvailableDate } from '@/lib/api/tenderiq';
 
 interface UseDateSelectorResult {
   availableDates: AvailableDate[];
@@ -38,6 +38,12 @@ const getDisplayLabel = (
       return `${selectedDateObj.date_str} (${selectedDateObj.tender_count} tenders)`;
     }
     return selectedDate;
+  }
+
+  // If no date is explicitly selected, show the latest scraped date from API response
+  const latestDate = getLatestScrapedDate();
+  if (latestDate) {
+    return `${latestDate.dateStr} (Latest)`;
   }
 
   return "Loading dates...";

@@ -23,11 +23,19 @@ interface UseLiveFiltersResult {
 
 /**
  * Custom hook to fetch and manage live tenders data with caching
- * Handles both daily and filtered tenders API calls
+ *
+ * The /tenders endpoint is now the main source:
+ * - When no filters: fetches latest scraped date first, then gets tenders for that date
+ * - When filters applied: uses /tenders endpoint with filter params
+ *
+ * Both paths use the /tenders endpoint which returns tenders organized by queries/categories
  */
 export const useLiveFilters = (params: UseLiveFiltersParams): UseLiveFiltersResult => {
   const { toast } = useToast();
   const [tenders, setTenders] = useState<Tender[]>([]);
+
+  // Check if any date/filter params are set
+  const hasDateOrFilters = !!(params.selectedDate || params.selectedDateRange || params.includeAllDates);
 
   // Use React Query for filtered tenders when filters are applied
   const { data: filteredData, isLoading: isLoadingFiltered, error: errorFiltered, refetch: refetchFiltered } = useQuery({
@@ -56,14 +64,15 @@ export const useLiveFilters = (params: UseLiveFiltersParams): UseLiveFiltersResu
       });
       return response.tenders;
     },
-    enabled: !!(params.selectedDate || params.selectedDateRange || params.includeAllDates),
+    enabled: hasDateOrFilters,
   });
 
   // Use React Query for daily tenders when no date filters are set
+  // This internally fetches latest date and gets tenders for that date via /tenders endpoint
   const { data: dailyData, isLoading: isLoadingDaily, error: errorDaily, refetch: refetchDaily } = useQuery({
     queryKey: ['dailyTenders'],
     queryFn: () => fetchDailyTenders(),
-    enabled: !(params.selectedDate || params.selectedDateRange || params.includeAllDates),
+    enabled: !hasDateOrFilters,
   });
 
   // Update tenders based on which query succeeded
@@ -88,7 +97,7 @@ export const useLiveFilters = (params: UseLiveFiltersParams): UseLiveFiltersResu
   }, [errorFiltered, errorDaily, toast]);
 
   const refetch = () => {
-    if (params.selectedDate || params.selectedDateRange || params.includeAllDates) {
+    if (hasDateOrFilters) {
       refetchFiltered();
     } else {
       refetchDaily();

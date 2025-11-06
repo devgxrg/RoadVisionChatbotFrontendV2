@@ -340,12 +340,19 @@ The current design is mockup-ready with sample data. When connecting to real API
 3. `POST /api/v1/wishlist/add` - Add tender to wishlist
 4. `DELETE /api/v1/wishlist/:tenderId` - Remove from wishlist
 
-### Analysis Page APIs:
-1. `POST /api/v1/tenderiq/tenders/:id/analyze` - Initiate analysis
-2. `GET /api/v1/tenderiq/analysis/:id` - Fetch analysis results
-3. `POST /api/v1/documents/upload` - Upload documents
-4. `GET /api/v1/tenderiq/analysis/:id/rfp-sections` - Fetch RFP analysis
-5. `GET /api/v1/tenderiq/analysis/:id/risks` - Fetch risk assessment
+### Analysis Submodule APIs (Under `/api/v1/tenderiq/analyze/`):
+1. `POST /api/v1/tenderiq/analyze/tender/{tenderId}` - Initiate tender analysis
+2. `GET /api/v1/tenderiq/analyze/results/{analysisId}` - Fetch analysis results
+3. `GET /api/v1/tenderiq/analyze/status/{analysisId}` - Check analysis status
+4. `GET /api/v1/tenderiq/analyze/tender/{tenderId}/risks` - Fetch risk assessment
+5. `GET /api/v1/tenderiq/analyze/tender/{tenderId}/rfp-sections` - Fetch RFP analysis
+6. `GET /api/v1/tenderiq/analyze/tender/{tenderId}/scope-of-work` - Fetch scope of work
+7. `POST /api/v1/tenderiq/analyze/tender/{tenderId}/one-pager` - Generate one-pager
+8. `GET /api/v1/tenderiq/analyze/tender/{tenderId}/data-sheet` - Generate data sheet
+9. `GET /api/v1/tenderiq/analyze/analyses` - List recent analyses
+10. `DELETE /api/v1/tenderiq/analyze/results/{analysisId}` - Delete analysis
+
+*See `TENDERIQ_ANALYZE_API_SUGGESTIONS.md` for detailed specification.*
 
 ---
 

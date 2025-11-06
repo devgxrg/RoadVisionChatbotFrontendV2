@@ -2,7 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Provider } from "react-redux";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { store } from "@/lib/redux/store";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import PlatformDashboard from "./pages/PlatformDashboard";
@@ -11,6 +13,7 @@ import DMS from "./pages/DMS";
 import TenderIQ from "./pages/TenderIQ";
 import TenderDetails from "./pages/TenderDetails";
 import AnalyzeTender from "./pages/AnalyzeTender";
+import WishlistHistory from "./pages/WishlistHistory";
 import AnalyzeDocument from "./pages/AnalyzeDocument";
 import DocumentDrafting from "./pages/DocumentDrafting";
 import DocumentAnonymization from "./pages/DocumentAnonymization";
@@ -23,12 +26,13 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
+  <Provider store={store}>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
           {/* Auth Route */}
           <Route path="/auth" element={<Auth />} />
           
@@ -51,13 +55,15 @@ const App = () => (
           {/* Protected TenderIQ Routes */}
           <Route path="/tenderiq/*" element={<ProtectedRoute><AppLayout><TenderIQ /></AppLayout></ProtectedRoute>} />
           <Route path="/tenderiq/view/:id" element={<ProtectedRoute><AppLayout><TenderDetails /></AppLayout></ProtectedRoute>} />
-          <Route path="/analyze/:id" element={<ProtectedRoute><AppLayout><AnalyzeTender /></AppLayout></ProtectedRoute>} />
+          <Route path="/tenderiq/analyze/:id" element={<ProtectedRoute><AppLayout><AnalyzeTender /></AppLayout></ProtectedRoute>} />
+          <Route path="/tenderiq/wishlist-history" element={<ProtectedRoute><AppLayout><WishlistHistory /></AppLayout></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </Provider>
 );
 
 export default App;
