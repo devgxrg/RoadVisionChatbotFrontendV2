@@ -7,25 +7,6 @@ export interface Document {
   isAIGenerated?: boolean;
 }
 
-export interface Tender {
-  id: string;
-  title: string;
-  authority: string;
-  value: number;              // in rupees
-  dueDate: string;            // ISO date: "2025-12-15"
-  status: 'live' | 'analyzed' | 'synopsis' | 'evaluated' | 'won' | 'lost' | 'pending';
-  category: string;
-  ePublishedDate: string;     // ISO date
-  bidSecurity: number;        // in rupees
-  emd: number;                // Earnest Money Deposit, in rupees
-  location: string;
-  length?: string;            // e.g., "120 km"
-  costPerKm?: number;
-  progressPct: number;        // 0-100
-  documents: Document[];
-  riskLevel?: 'high' | 'medium' | 'low';
-}
-
 
 export interface HistoryTender {
   id: number;
@@ -192,13 +173,6 @@ export interface TenderDetailsType {
   riskLevel?: "Low" | "Medium" | "High";
 }
 
-export type TenderActionType =
-  | "toggle_wishlist"
-  | "toggle_favorite"
-  | "toggle_archive"
-  | "update_status"
-  | "update_review_status";
-
 export type TenderStatusEnum =
   | "New"
   | "Reviewed"
@@ -211,17 +185,6 @@ export type TenderStatusEnum =
   | "Pending_Results";
 
 export type ReviewStatusEnum = "Not_Reviewed" | "Reviewed" | "Shortlisted";
-
-export interface TenderActionPayload {
-  status?: TenderStatusEnum;
-  review_status?: ReviewStatusEnum;
-  notes?: string;
-}
-
-export interface TenderActionRequest {
-  action: TenderActionType;
-  payload?: TenderActionPayload;
-}
 
 export interface AnalysisOnePager {
   project_overview: string;

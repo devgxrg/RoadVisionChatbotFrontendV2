@@ -1,7 +1,7 @@
 
 import { NavigateFunction } from 'react-router-dom';
-import { Tender } from './tenderiq';
 import { LucideProps } from 'lucide-react';
+import { Tender } from './tenderiq.types';
 
 export interface WishlistItem extends Tender {
   addedAt: string; // ISO date string

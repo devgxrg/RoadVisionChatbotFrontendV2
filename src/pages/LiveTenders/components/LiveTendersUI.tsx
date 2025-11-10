@@ -8,8 +8,6 @@ import { useEffect, useState } from 'react';
 
 interface LiveTendersUIProps {
   report: Report | undefined;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
   onAddToWishlist: (tenderId: string, e: React.MouseEvent) => void;
   onViewTender: (tenderId: string) => void;
   onNavigateToWishlist: () => void;
@@ -144,7 +142,6 @@ export default function LiveTendersUI({
                   <Card 
                     key={tender.id}
                     className="p-6 hover:shadow-lg transition-all cursor-pointer group"
-                    onClick={() => onViewTender(tender.id)}
                   >
                     <div className="space-y-4 h-full flex flex-col">
                       {/* Header */}
@@ -158,7 +155,7 @@ export default function LiveTendersUI({
                           className="h-8 w-8 flex-shrink-0"
                           onClick={(e) => onAddToWishlist(tender.id, e)}
                         >
-                          <Star className={`h-4 w-4 ${tender.is_wishlisted ? 'fill-warning text-warning' : ''}`} />
+                          <Star className={`h-4 w-4 ${isInWishlist(tender.id) ? 'fill-warning text-warning' : ''}`} />
                         </Button>
                       </div>
 

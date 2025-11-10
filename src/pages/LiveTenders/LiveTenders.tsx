@@ -1,34 +1,46 @@
 import { Card } from "@/components/ui/card";
-import { Report } from "@/lib/types/tenderiq.types";
+import { Report, Tender } from "@/lib/types/tenderiq.types";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import LiveTendersUI from "./components/LiveTendersUI";
-import { getTodayTenders } from "@/lib/api/tenderiq.api";
+import { getTodayTenders, fetchWishlistedTenders, performTenderAction } from "@/lib/api/tenderiq.api";
+import { useNavigate } from "react-router-dom";
 
 export default function LiveTenders() {
   const [report, setReport] = useState<Report | null>(undefined)
+  const [wishlisted, setWishlisted] = useState<Tender[]>([])
+  const navigate = useNavigate()
+
+  const fetchReport = async () => {
+    const report = await getTodayTenders()
+    setReport(report)
+  }
+  const fetchWishlisted = async () => {
+    const wishlisted_tenders = await fetchWishlistedTenders()
+    setWishlisted(wishlisted_tenders)
+  }
 
   useEffect(() => {
-    const fetchReport = async () => {
-      const report = await getTodayTenders()
-      setReport(report)
-    }
     fetchReport()
+    fetchWishlisted()
   }, [])
 
   return <LiveTendersUI
     report={report}
-    searchQuery={""}
-    onSearchChange={function (query: string): void {
-    }}
     onAddToWishlist={function (tenderId: string, e: React.MouseEvent): void {
+      performTenderAction(tenderId, { action: 'toggle_wishlist' }).then(async () => {
+        const wishlisted_tenders = await fetchWishlistedTenders()
+        setWishlisted(wishlisted_tenders)
+      })
     }}
     onViewTender={function (tenderId: string): void {
+      navigate(`/tenderiq/view/${tenderId}`)
     }}
     onNavigateToWishlist={function (): void {
+      navigate(`/tenderiq/wishlist-history`)
     }}
     isInWishlist={function (tenderId: string): boolean {
-      return false
+      return wishlisted.some(t => t.id === tenderId)
     }}
   />
 

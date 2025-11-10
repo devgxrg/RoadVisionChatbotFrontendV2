@@ -39,6 +39,7 @@ export async function getHistoryWishlistData(): Promise<HistoryPageResponse> {
     const data = await response.json() as HistoryPageResponse;
     return data;
   } catch (error) {
+    console.error(error)
     return mockHistoryPageResponse;
   }
 }

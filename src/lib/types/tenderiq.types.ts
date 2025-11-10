@@ -1,3 +1,22 @@
+export interface TenderActionPayload {
+  status?: TenderStatusEnum;
+  review_status?: ReviewStatusEnum;
+  notes?: string;
+}
+
+export type TenderActionType =
+  | "toggle_wishlist"
+  | "toggle_favorite"
+  | "toggle_archive"
+  | "update_status"
+  | "update_review_status";
+
+export interface TenderActionRequest {
+  action: TenderActionType;
+  payload?: TenderActionPayload;
+}
+
+
 /**
  * Represents the 'AnalysisStatusEnum' schema.
  */
