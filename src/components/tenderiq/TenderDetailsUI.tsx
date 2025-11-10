@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TenderDetailsType } from '@/lib/types/tenderiq';
-import { FullTenderDetails } from '@/lib/types/tenderiq1';
+import { FullTenderDetails } from '@/lib/types/tenderiq.types';
 
 interface TenderDetailsUIProps {
   tender: FullTenderDetails;

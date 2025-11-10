@@ -23,6 +23,7 @@ import LegalResearch from "./pages/LegalResearch";
 import AskAI from "./pages/AskAI";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import LiveTenders from "./pages/LiveTenders/LiveTenders";
 
 const queryClient = new QueryClient();
 
@@ -54,7 +55,7 @@ const App = () => (
           <Route path="/dmsiq" element={<ProtectedRoute><DMS /></ProtectedRoute>} />
           
           {/* Protected TenderIQ Routes */}
-          <Route path="/tenderiq/*" element={<ProtectedRoute><AppLayout><TenderIQ /></AppLayout></ProtectedRoute>} />
+          <Route path="/tenderiq/*" element={<ProtectedRoute><AppLayout><LiveTenders /></AppLayout></ProtectedRoute>} />
           <Route path="/tenderiq/view/:id" element={<ProtectedRoute><AppLayout><TenderDetails /></AppLayout></ProtectedRoute>} />
           <Route path="/tenderiq/analyze/:id" element={<ProtectedRoute><AppLayout><AnalyzeTender /></AppLayout></ProtectedRoute>} />
           <Route path="/tenderiq/wishlist-history" element={<ProtectedRoute><AppLayout><WishlistHistory /></AppLayout></ProtectedRoute>} />

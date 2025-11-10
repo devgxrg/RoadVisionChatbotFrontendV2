@@ -1,8 +1,7 @@
 import { API_BASE_URL } from '@/lib/config/api';
 import { getAuthHeaders } from '@/lib/api/authHelper';
 import { Document, Tender, TenderDetailsType, TenderDocument, ScrapedTenderFile, ScrapedTender, TenderApiResponse, AvailableDate, FilteredTendersResponse, TenderActionRequest, TenderAnalysisResult } from '@/lib/types/tenderiq';
-import { FullTenderDetails } from '../types/tenderiq1';
-import { mockFullTenderDetails } from '../mock/tenderiq';
+import { FullTenderDetails } from '../types/tenderiq.types';
 
 // Transform API response to frontend format
 const transformTender = (apiTender: ScrapedTender, category: string): Tender => {
@@ -405,5 +404,19 @@ export const fetchTenderAnalysis = async (tenderId: string): Promise<TenderAnaly
 * Fetch the full details of a tender
 * */
 export const fetchFullTenderDetails = async (tenderId: string): Promise<FullTenderDetails> => {
-  return mockFullTenderDetails
+  const url = `${API_BASE_URL}/tenderiq/tenders/${tenderId}/full`;
+  console.log(`Fetching analysis for tender ${tenderId} from:`, url);
+  try {
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch tender analysis: ${response.status} ${errorText}`);
+    }
+    const data = await response.json() as FullTenderDetails;
+    console.log(`Analysis for tender ${tenderId} successful:`, data);
+    return data;
+  } catch (error) {
+    console.error(`Error in fetchTenderAnalysis for tender ${tenderId}:`, error);
+    throw error;
+  }
 }

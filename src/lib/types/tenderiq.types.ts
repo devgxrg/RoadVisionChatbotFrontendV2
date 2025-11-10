@@ -199,3 +199,65 @@ export interface FullTenderDetails {
   history: ActionHistoryItem[];
   tender_history: TenderHistoryItem[];
 }
+
+/**
+ * Interface for a single tender's details.
+ */
+export interface Tender {
+  id: string; // UUID
+  tender_id_str: string;
+  tender_name: string;
+  tender_url: string;
+  drive_url: string;
+  city: string;
+  summary: string;
+  value: string;
+  due_date: string; // Date string
+  tdr: string;
+  tendering_authority: string;
+  tender_no: string;
+  tender_id_detail: string;
+  tender_brief: string;
+  state: string;
+  document_fees: string;
+  emd: string;
+  tender_value: string;
+  tender_type: string;
+  bidding_type: string;
+  competition_type: string;
+  tender_details: string;
+  publish_date: string; // Date string
+  last_date_of_bid_submission: string; // Date string
+  tender_opening_date: string; // Date string
+  company_name: string;
+  contact_person: string;
+  address: string;
+  information_source: string;
+  files: TenderFile[];
+  is_wishlisted: boolean;
+  dms_folder_id: string; // UUID
+}
+
+/**
+ * Interface for a query, which contains multiple tenders.
+ */
+export interface Query {
+  id: string; // UUID
+  query_name: string;
+  number_of_tenders: string;
+  tenders: Tender[];
+}
+
+/**
+ * Interface for the top-level report object.
+ */
+export interface Report {
+  id: string; // UUID
+  run_at: string; // ISO 8601 Date string
+  date_str: string;
+  name: string;
+  contact: string;
+  no_of_new_tenders: string;
+  company: string;
+  queries: Query[];
+}
