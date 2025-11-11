@@ -1,3 +1,14 @@
+export type TenderStatusEnum =
+  | "New"
+  | "Reviewed"
+  | "Shortlisted"
+  | "Bid_Preparation"
+  | "Submitted"
+  | "Won"
+  | "Lost"
+  | "Not_Interested"
+  | "Pending_Results";
+
 export interface TenderActionPayload {
   status?: TenderStatusEnum;
   review_status?: ReviewStatusEnum;
@@ -279,4 +290,15 @@ export interface Report {
   no_of_new_tenders: string;
   company: string;
   queries: Query[];
+}
+
+export type StreamStatus =
+  "idle" |
+  "streaming" |
+  "complete" |
+  "error";
+
+export interface SSEBatchTenders {
+  query_id: string;
+  data: Tender[];
 }

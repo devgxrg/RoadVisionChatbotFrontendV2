@@ -29,7 +29,7 @@ export default function LiveTendersUI({
   const [minPrice, setMinPrice] = useState("");
 
   const filterReport = () => {
-    if (!report) {
+    if (!report || report == null) {
       return;
     }
 
@@ -60,7 +60,7 @@ export default function LiveTendersUI({
 
   useEffect(() => {
     setFilteredQueries(report ? report.queries : [])
-    if (!report) return
+    if (!report || report == null) return
     let count = 0;
     report.queries.forEach((query) => {
       count += query.tenders.length

@@ -173,17 +173,6 @@ export interface TenderDetailsType {
   riskLevel?: "Low" | "Medium" | "High";
 }
 
-export type TenderStatusEnum =
-  | "New"
-  | "Reviewed"
-  | "Shortlisted"
-  | "Bid_Preparation"
-  | "Submitted"
-  | "Won"
-  | "Lost"
-  | "Not_Interested"
-  | "Pending_Results";
-
 export type ReviewStatusEnum = "Not_Reviewed" | "Reviewed" | "Shortlisted";
 
 export interface AnalysisOnePager {

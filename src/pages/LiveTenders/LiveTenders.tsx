@@ -5,23 +5,20 @@ import { useEffect, useState } from "react";
 import LiveTendersUI from "./components/LiveTendersUI";
 import { getTodayTenders, fetchWishlistedTenders, performTenderAction } from "@/lib/api/tenderiq.api";
 import { useNavigate } from "react-router-dom";
+import { useReportStream } from "@/lib/hooks/tenderiq.hook";
 
 export default function LiveTenders() {
-  const [report, setReport] = useState<Report | null>(undefined)
+  const { report, status } = useReportStream()
+  // const [report, setReport] = useState<Report | null>(undefined)
   const [wishlisted, setWishlisted] = useState<Tender[]>([])
   const navigate = useNavigate()
 
-  const fetchReport = async () => {
-    const report = await getTodayTenders()
-    setReport(report)
-  }
   const fetchWishlisted = async () => {
     const wishlisted_tenders = await fetchWishlistedTenders()
     setWishlisted(wishlisted_tenders)
   }
 
   useEffect(() => {
-    fetchReport()
     fetchWishlisted()
   }, [])
 

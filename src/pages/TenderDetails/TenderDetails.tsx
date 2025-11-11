@@ -12,8 +12,7 @@ import {
   fetchFavoriteTenders,
   fetchArchivedTenders,
 } from '@/lib/api/tenderiq';
-import { Tender } from '@/lib/types/tenderiq';
-import { FullTenderDetails } from '@/lib/types/tenderiq.types';
+import { Tender, FullTenderDetails } from '@/lib/types/tenderiq.types';
 
 export default function TenderDetails() {
   const { id } = useParams<{ id: string }>();
