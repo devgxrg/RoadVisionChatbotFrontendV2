@@ -57,10 +57,6 @@ export const useReportStream = () => {
     evtSource.addEventListener("complete", handleComplete)
     evtSource.onerror = handleError
 
-    return () => {
-      evtSource.close()
-    }
-
   },[])
 
   return { report, status }

@@ -175,7 +175,7 @@ export default function LiveTendersUI({
                               'border-warning text-warning'
                             }`}
                           >
-                            {tender.state}
+                            {tender.city}
                           </Badge>
                         </div>
                       </div>

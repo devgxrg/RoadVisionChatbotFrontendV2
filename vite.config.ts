@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/docs/, "/docs"),
       },
+      "/pgadmin": {
+        target: "http://localhost:5050",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/pgadmin/, ""),
+      }
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
