@@ -47,13 +47,13 @@ export default function ScopeOfWork({ scopeOfWork }: ScopeOfWorkProps) {
       {/* Work Packages */}
       {scopeOfWork.work_packages.length > 0 && (
         <Card className="p-6 space-y-4">
-          <h3 className="text-xl font-bold">Work Packages</h3>
+          <h3 className="text-2xl font-bold">Work Packages</h3>
           <Accordion type="single" collapsible className="space-y-2">
             {scopeOfWork.work_packages.map((pkg, idx) => (
               <AccordionItem key={idx} value={`pkg-${idx}`}>
                 <AccordionTrigger className="hover:no-underline">
                   <div className="text-left">
-                    <p className="font-semibold">{pkg.name}</p>
+                    <p className="font-semibold text-lg">{pkg.name}</p>
                     <p className="text-sm text-muted-foreground">{pkg.description}</p>
                   </div>
                 </AccordionTrigger>
