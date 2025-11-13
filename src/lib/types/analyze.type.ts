@@ -99,25 +99,17 @@ export interface ScopeOfWorkData {
 // ============================================================================
 
 export interface RFPSection {
-  section_number: string;
   section_name: string;
+  section_title: string;
   summary: string;
-  key_points: string[];
-  critical_requirements: string[];
-  considerations: string[];
-  risks: string[];
-  action_items: string[];
-  documents: string[];
+  key_requirements: string[];
+  compliance_issues: string[];
+  page_references: string[];
 }
 
 export interface RFPSummary {
   total_sections: number;
   total_requirements: number;
-  criticality: {
-    high: number;
-    medium: number;
-    low: number;
-  };
 }
 
 export interface RFPSectionsData {

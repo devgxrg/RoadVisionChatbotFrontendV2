@@ -40,8 +40,11 @@ export const fetchTenderAnalysis = async (tenderId: string): Promise<TenderAnaly
     const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
+    const data = await response.json() as TenderAnalysisResponse;
+    data.rfp_sections = data.rfp_sections || mockTenderAnalysis.rfp_sections
+    data.data_sheet = data.data_sheet || mockTenderAnalysis.data_sheet
+    return data
 
-    return handleResponse(response);
   } catch (error) {
     console.error(`Error in fetchTenderAnalysis for tender ${tenderId}:`, error);
     throw error;
