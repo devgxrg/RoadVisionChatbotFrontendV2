@@ -4,6 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { SynopsisContent } from '@/lib/types/bidsynopsis.types';
+import { useReactToPrint } from 'react-to-print';
+import { useRef } from 'react';
 
 interface BidSynopsisUIProps {
   tenderTitle?: string;
@@ -28,6 +30,9 @@ export default function BidSynopsisUI({
   onExportPDF,
   onFileUpload,
 }: BidSynopsisUIProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const reactToPrintFn = useReactToPrint({ contentRef })
+
   return (
     <div className="min-h-screen bg-background">
       <div className="p-8 space-y-6 max-w-[1600px] mx-auto">
@@ -40,9 +45,9 @@ export default function BidSynopsisUI({
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onExportPDF}>
+            <Button variant="outline" onClick={reactToPrintFn}>
               <Download className="h-4 w-4 mr-2" />
-              Download PDF
+              Export To PDF
             </Button>
             <Button onClick={onSave}>
               <Save className="h-4 w-4 mr-2" />
@@ -169,7 +174,7 @@ export default function BidSynopsisUI({
 
           <TabsContent value="preview" className="space-y-6">
             <Card className="p-8 bg-white dark:bg-background">
-              <div className="max-w-5xl mx-auto space-y-8">
+              <div className="max-w-5xl mx-auto space-y-8 p-6" ref={contentRef}>
                 {/* Header */}
                 <div className="text-center border-foreground">
                   <h1 className="text-2xl font-bold mb-4">BID SYNOPSIS</h1>
