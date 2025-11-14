@@ -127,6 +127,26 @@ export default function LiveTendersUI({
                 <SelectValue placeholder="Select a date" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem
+                  value="last_2_days"
+                >
+                  Last 2 days
+                </SelectItem>
+                <SelectItem
+                  value="last_5_days"
+                >
+                  Last 5 days
+                </SelectItem>
+                <SelectItem
+                  value="last_7_days"
+                >
+                  Last 7 days
+                </SelectItem>
+                <SelectItem
+                  value="last_30_days"
+                >
+                  Last 30 days
+                </SelectItem>
                 {dates.map((date) => (
                   <SelectItem
                     key={date.id}
