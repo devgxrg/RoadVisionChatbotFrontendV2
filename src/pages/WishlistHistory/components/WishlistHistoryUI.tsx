@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Circle, Download, Eye, Filter, Heart, IndianRupee, Sq
 import { useEffect, useState } from "react";
 import WishlistReportPreview from "./WishlistReportPreview";
 import { useWishlistReportData } from "../hooks/useWishlistReportData";
+import { useWishlistReportExcel } from "../hooks/useWishlistReportExcel";
 
 export function MetadataCard({ title, value, LucideIcon, description }: MetadataCardProps) {
   return (
@@ -98,6 +99,7 @@ export default function WishlistHistoryUI({ navigate, data, handleViewTender, ha
 
   // Process data for report
   const reportData = useWishlistReportData(data);
+  const { handleExportToExcel } = useWishlistReportExcel();
 
   useEffect(() => {
     const filtered = data.tenders.filter((tender) => tender.title.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -150,10 +152,14 @@ export default function WishlistHistoryUI({ navigate, data, handleViewTender, ha
 
   const handleExportReport = () => {
     setIsExporting(true);
-    // Simulate export delay
-    setTimeout(() => {
+    try {
+      handleExportToExcel(reportData);
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
       setIsExporting(false);
-    }, 1000);
+      handleCloseReportPreview();
+    }
   };
 
   return (

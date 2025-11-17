@@ -1,8 +1,8 @@
 export const getCurrencyTextFromNumber = (number: number): string => {
-  return number.toLocaleString('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-  });
+  let crore = number / 10000000;
+  let result = crore.toString() + " Crores"
+
+  return result;
 }
 
 export const getCurrencyNumberFromText = (text: string): number => {

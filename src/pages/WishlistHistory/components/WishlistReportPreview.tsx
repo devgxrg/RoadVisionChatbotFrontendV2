@@ -3,11 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Download, X } from 'lucide-react';
 import { WishlistReportPreviewProps } from '@/lib/types/wishlist';
 import WishlistReportTemplate from './WishlistReportTemplate';
-import { useWishlistReportPrint } from '../hooks/useWishlistReportPrint';
+import { useRef } from 'react';
 
 /**
  * Modal dialog for previewing and exporting wishlist reports
- * Follows the same pattern as BidSynopsis preview functionality
+ * Exports data to Excel format for easy manipulation and analysis
  */
 export default function WishlistReportPreview({
   isOpen,
@@ -16,13 +16,11 @@ export default function WishlistReportPreview({
   onExportToPDF,
   isExporting = false,
 }: WishlistReportPreviewProps) {
-  const { contentRef, handlePrint } = useWishlistReportPrint();
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleExport = () => {
-    // Call the parent's PDF export handler
+    // Call the parent's export handler (now exports to Excel)
     onExportToPDF();
-    // Trigger print dialog
-    handlePrint();
   };
 
   return (
@@ -33,7 +31,7 @@ export default function WishlistReportPreview({
             Wishlist Report Preview
           </DialogTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Preview the report before exporting to PDF
+            Preview the report before exporting to Excel
           </p>
         </DialogHeader>
 
@@ -55,7 +53,7 @@ export default function WishlistReportPreview({
             className="gap-2"
           >
             <Download className="h-4 w-4" />
-            {isExporting ? 'Exporting...' : 'Export to PDF'}
+            {isExporting ? 'Exporting...' : 'Export to Excel'}
           </Button>
         </DialogFooter>
       </DialogContent>
