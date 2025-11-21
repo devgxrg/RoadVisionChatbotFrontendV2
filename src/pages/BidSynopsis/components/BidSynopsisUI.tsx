@@ -11,9 +11,13 @@ interface BidSynopsisUIProps {
   tenderTitle?: string;
   synopsisContent: SynopsisContent;
   ceigallData: Record<number, string>;
+  requirementData: Record<number, string>;
+  extractedValueData: Record<number, string>;
   activeTab: string;
   onTabChange: (tab: string) => void;
   onCeigallChange: (index: number, value: string) => void;
+  onRequirementChange: (index: number, value: string) => void;
+  onExtractedValueChange: (index: number, value: string) => void;
   onSave: () => void;
   onExportPDF: () => void;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -23,9 +27,13 @@ export default function BidSynopsisUI({
   tenderTitle,
   synopsisContent,
   ceigallData,
+  requirementData,
+  extractedValueData,
   activeTab,
   onTabChange,
   onCeigallChange,
+  onRequirementChange,
+  onExtractedValueChange,
   onSave,
   onExportPDF,
   onFileUpload,
@@ -130,14 +138,21 @@ export default function BidSynopsisUI({
                       {synopsisContent.allRequirements.map((item, idx) => (
                         <tr key={idx} className="border-b">
                           <td className="p-3 align-top font-medium">{item.description}</td>
-                          <td className="p-3 align-top">{item.requirement}</td>
                           <td className="p-3 align-top">
-                            {item.extractedValue}
-                            {/*<Input
-                              placeholder="Extracted value"
+                            <Input
+                              placeholder="Enter requirement"
+                              value={requirementData[idx] || item.requirement}
+                              onChange={(e) => onRequirementChange(idx, e.target.value)}
                               className="text-sm h-8"
-                              disabled
-                            />*/}
+                            />
+                          </td>
+                          <td className="p-3 align-top">
+                            <Input
+                              placeholder="Extracted value"
+                              value={extractedValueData[idx] || item.extractedValue}
+                              onChange={(e) => onExtractedValueChange(idx, e.target.value)}
+                              className="text-sm h-8"
+                            />
                           </td>
                           <td className="p-3 align-top">
                             <Input
@@ -221,8 +236,8 @@ export default function BidSynopsisUI({
                         {synopsisContent.allRequirements.map((item, idx) => (
                           <tr key={idx} className={idx < synopsisContent.allRequirements.length - 1 ? 'border-b border-foreground' : ''}>
                             <td className="p-2 border-r-2 border-foreground align-top font-semibold">{item.description}</td>
-                            <td className="p-2 border-r-2 border-foreground align-top leading-relaxed">{item.requirement}</td>
-                            <td className="p-2 border-r-2 border-foreground align-top">{item.extractedValue}</td>
+                            <td className="p-2 border-r-2 border-foreground align-top leading-relaxed">{requirementData[idx] || item.requirement}</td>
+                            <td className="p-2 border-r-2 border-foreground align-top">{extractedValueData[idx] || item.extractedValue}</td>
                             <td className="p-2 align-top font-semibold">{ceigallData[idx] || item.ceigallValue}</td>
                           </tr>
                         ))}

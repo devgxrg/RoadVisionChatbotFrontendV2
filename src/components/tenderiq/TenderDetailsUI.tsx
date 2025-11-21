@@ -216,9 +216,9 @@ export default function TenderDetailsUI({
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => window.open(doc.file_url, '_blank')} disabled={!doc.file_url}>
+                        {/* <Button size="sm" variant="outline" onClick={() => window.open(doc.file_url, '_blank')} disabled={!doc.file_url}>
                           View
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </Card>

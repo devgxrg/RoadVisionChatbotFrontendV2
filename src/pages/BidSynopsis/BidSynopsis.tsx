@@ -13,6 +13,8 @@ export default function BidSynopsis() {
   const [activeTab, setActiveTab] = useState('edit');
   const [synopsisContent, setSynopsisContent] = useState<SynopsisContent | null>(null);
   const [ceigallData, setCeigallData] = useState<Record<number, string>>({});
+  const [requirementData, setRequirementData] = useState<Record<number, string>>({});
+  const [extractedValueData, setExtractedValueData] = useState<Record<number, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   
   const tender = id !== 'new' ? getTenderById(id || '') : null;
@@ -30,6 +32,12 @@ export default function BidSynopsis() {
         if (savedData == null) return;
         if (savedData.ceigallData) {
           setCeigallData(savedData.ceigallData);
+        }
+        if (savedData.requirementData) {
+          setRequirementData(savedData.requirementData);
+        }
+        if (savedData.extractedValueData) {
+          setExtractedValueData(savedData.extractedValueData);
         }
         
         // Fetch synopsis content
@@ -66,18 +74,42 @@ export default function BidSynopsis() {
     }));
   };
 
-  const handleSave = () => {
+  const handleRequirementChange = (index: number, value: string) => {
+    setRequirementData(prev => ({
+      ...prev,
+      [index]: value
+    }));
+  };
+
+  const handleExtractedValueChange = (index: number, value: string) => {
+    setExtractedValueData(prev => ({
+      ...prev,
+      [index]: value
+    }));
+  };
+
+  const handleSave = async () => {
     if (!id || !synopsisContent) return;
-    
-    saveBidSynopsis(id, {
+
+    const result = await saveBidSynopsis(id, {
       ceigallData,
+      requirementData,
+      extractedValueData,
       synopsisContent,
     });
-    
-    toast({
-      title: "Saved",
-      description: "Bid synopsis has been saved successfully",
-    });
+
+    if (result.success) {
+      toast({
+        title: "Saved",
+        description: "Bid synopsis has been saved successfully to database",
+      });
+    } else {
+      toast({
+        title: "Warning",
+        description: "Saved locally, but failed to sync with database",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportPDF = () => {
@@ -113,9 +145,13 @@ export default function BidSynopsis() {
       tenderTitle={tender?.title}
       synopsisContent={synopsisContent}
       ceigallData={ceigallData}
+      requirementData={requirementData}
+      extractedValueData={extractedValueData}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       onCeigallChange={handleCeigallChange}
+      onRequirementChange={handleRequirementChange}
+      onExtractedValueChange={handleExtractedValueChange}
       onSave={handleSave}
       onExportPDF={handleExportPDF}
       onFileUpload={handleFileUpload}

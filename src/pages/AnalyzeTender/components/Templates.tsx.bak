@@ -3,9 +3,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TemplatesData, TemplateItem } from '@/lib/types/analyze.type';
-import { downloadTemplate } from '@/lib/api/analyze.api';
-import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
 
 interface TemplatesProps {
   templates: TemplatesData;
@@ -17,9 +14,6 @@ interface TemplateSection {
 }
 
 export default function Templates({ templates }: TemplatesProps) {
-  const { toast } = useToast();
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
   const templateSections: TemplateSection[] = [
     {
       title: 'Bid Submission Forms',
@@ -49,26 +43,6 @@ export default function Templates({ templates }: TemplatesProps) {
     return icons[format] || '📎';
   };
 
-  const handleDownload = async (template: TemplateItem) => {
-    setDownloadingId(template.id);
-    
-    try {
-      await downloadTemplate(template.id, template.name);
-      toast({
-        title: 'Success',
-        description: `Downloaded ${template.name}`,
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to download template',
-        variant: 'destructive',
-      });
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-
   const renderTemplateItem = (template: TemplateItem) => (
     <Card key={template.id} className="p-4 border hover:border-primary transition-colors">
       <div className="flex items-start justify-between gap-4">
@@ -95,11 +69,11 @@ export default function Templates({ templates }: TemplatesProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => handleDownload(template)}
-          disabled={downloadingId === template.id}
+          onClick={() => template.downloadUrl && window.open(template.downloadUrl)}
+          disabled={!template.downloadUrl}
         >
           <Download className="h-4 w-4 mr-2" />
-          {downloadingId === template.id ? 'Downloading...' : 'Download'}
+          Download
         </Button>
       </div>
     </Card>

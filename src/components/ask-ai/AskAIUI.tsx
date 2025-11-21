@@ -149,7 +149,7 @@ export function AskAIUI({
             </Button>
           )}
           <div className="flex-1">
-            <h1 className="text-xl font-semibold">Ask Ceigall AI</h1>
+            <h1 className="text-xl font-semibold">Ceigall AI</h1>
             <p className="text-sm text-muted-foreground">
               Chat with AI about your legal documents
             </p>

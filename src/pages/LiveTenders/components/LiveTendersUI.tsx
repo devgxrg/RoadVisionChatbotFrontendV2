@@ -14,6 +14,7 @@ interface LiveTendersUIProps {
   onAddToWishlist: (tenderId: string, e: React.MouseEvent) => void;
   onViewTender: (tenderId: string) => void;
   onNavigateToWishlist: () => void;
+  onAskAI: (tenderId: string) => void;
   isInWishlist: (tenderId: string) => boolean;
   onChangeDate: (date: string) => void;
   dates: ScrapeDate[]
@@ -24,6 +25,7 @@ export default function LiveTendersUI({
   onAddToWishlist,
   onViewTender,
   onNavigateToWishlist,
+  onAskAI,
   isInWishlist,
   onChangeDate,
   dates
@@ -279,18 +281,18 @@ export default function LiveTendersUI({
                           <Eye className="h-3.5 w-3.5" />
                           View
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        {/* <Button
+                          size="sm"
+                          variant="outline"
                           className="gap-2 w-full"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Open chat for this specific tender
+                            onAskAI(tender.id);
                           }}
                         >
                           <MessageSquare className="h-3.5 w-3.5" />
                           Ask AI
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </Card>

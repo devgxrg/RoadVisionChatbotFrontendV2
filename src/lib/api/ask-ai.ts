@@ -12,11 +12,11 @@ export async function getChats(): Promise<ChatMetadata[]> {
   return response.json();
 }
 
-export async function createChat(driveUrl?: string | null): Promise<ChatMetadata> {
+export async function createChat(driveUrl?: string | null, tenderId?: string | null): Promise<ChatMetadata> {
   const response = await fetch(`${API_BASE_URL}/askai/chats`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ driveUrl }),
+    body: JSON.stringify({ driveUrl, tenderId }),
   });
   if (!response.ok) throw new Error("Failed to create chat");
   return response.json();

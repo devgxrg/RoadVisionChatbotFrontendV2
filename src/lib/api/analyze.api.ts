@@ -50,3 +50,101 @@ export const fetchTenderAnalysis = async (tenderId: string): Promise<TenderAnaly
     throw error;
   }
 };
+
+/**
+ * Download tender analysis report in specified format
+ *
+ * @param tenderId - UUID of the tender
+ * @param format - Report format (pdf, excel, word)
+ */
+export const downloadAnalysisReport = async (tenderId: string, format: 'pdf' | 'excel' | 'word' = 'pdf'): Promise<void> => {
+  const url = `${API_BASE_URL}/analyze/report/download/${tenderId}?format=${format}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download analysis report');
+    }
+
+    // Get filename from Content-Disposition header or construct default
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = `Tender_Analysis_${tenderId}.${format === 'excel' ? 'xlsx' : format === 'word' ? 'docx' : 'pdf'}`;
+
+    if (contentDisposition) {
+      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, '');
+      }
+    }
+
+    // Create blob and download
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    console.log('Analysis report downloaded:', filename);
+  } catch (error) {
+    console.error('Error downloading analysis report:', error);
+    throw error;
+  }
+};
+
+/**
+ * Download a template file
+ *
+ * @param templateId - UUID of the template
+ * @returns Promise that resolves when download completes
+ */
+export const downloadTemplate = async (templateId: string, templateName: string): Promise<void> => {
+  const url = `${API_BASE_URL}/analyze/templates/download/${templateId}`;
+  
+  try {
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download template');
+    }
+
+    // Get filename from Content-Disposition header or use default
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = templateName.replace(/\s+/g, '_') + '.pdf';
+    
+    if (contentDisposition) {
+      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, '');
+      }
+    }
+
+    // Create blob and download
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+    
+    console.log('Template downloaded:', filename);
+  } catch (error) {
+    console.error('Error downloading template:', error);
+    throw error;
+  }
+};

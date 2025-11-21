@@ -64,7 +64,9 @@ function createBiddingSheet(reportData: WishlistReportData): XLSX.WorkSheet {
     const scraped = tender.full_scraped_details;
 
     // Extract numeric values for calculations
-    const estimatedCost = parseFloat(String(tender.value || 0));
+    // Convert values from raw numbers to Crores (divide by 10000000)
+    const estimatedCostInCrores = tender.value ? tender.value / 10000000 : null;
+    const emdInCrores = tender.emd ? tender.emd / 10000000 : null;
     const length = scraped ? parseFloat(String(scraped.total_length || 0)) : 0;
 
     // Build row array (will add formulas later)
@@ -72,7 +74,7 @@ function createBiddingSheet(reportData: WishlistReportData): XLSX.WorkSheet {
       // A: S. No - Will be set as formula
       sNo: null as any, // Placeholder, will be replaced with formula
       // B: Tender Id
-      tenderId: scraped.tender_id_detail || '',
+      tenderId: scraped?.tender_id_detail || '',
       // C: Name of the Work
       nameOfWork: tender.title || '',
       // D: Employer
@@ -81,8 +83,8 @@ function createBiddingSheet(reportData: WishlistReportData): XLSX.WorkSheet {
       state: scraped?.state || '',
       // F: Mode (Bidding Type)
       mode: scraped?.bidding_type || '',
-      // G: Estimated Project Cost
-      estimatedCost: estimatedCost || null,
+      // G: Estimated Project Cost (in Crores)
+      estimatedCost: estimatedCostInCrores,
       // H: e-Published Date
       ePublishedDate: scraped?.publish_date || '',
       // I: Tender Identification Date
@@ -90,7 +92,7 @@ function createBiddingSheet(reportData: WishlistReportData): XLSX.WorkSheet {
       // J: Last Date
       lastDate: tender.due_date || '',
       // K: BID Security in Cr.
-      bidSecurity: tender.emd || null,
+      bidSecurity: emdInCrores,
       // L: Length
       length: length || null,
       // M: Per Km Cost - Formula: =G/L (will add formula if we have both values)
@@ -222,8 +224,11 @@ function addFormulasAndFormatting(worksheet: XLSX.WorkSheet, worksheetData: any[
       worksheet[cellG].z = '_ * #,##0.00_ ;_ * \\-#,##0.00_ ;_ * "-"??_ ;_ @_';
     }
 
-    // === Column K: BID Security - Keep as-is (mixed type) ===
-    // No special formatting needed, allow mixed types
+    // === Column K: BID Security in Cr. - Currency format ===
+    const cellK = XLSX.utils.encode_cell({ r, c: 10 });
+    if (worksheet[cellK] && worksheet[cellK].v !== null && worksheet[cellK].v !== undefined) {
+      worksheet[cellK].z = '_ * #,##0.00_ ;_ * \\-#,##0.00_ ;_ * "-"??_ ;_ @_';
+    }
 
     // === Column L: Length - Currency format ===
     const cellL = XLSX.utils.encode_cell({ r, c: 11 });

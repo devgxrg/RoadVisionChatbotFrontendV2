@@ -22,6 +22,8 @@ export interface SynopsisContent {
 
 export interface BidSynopsisData {
   ceigallData: Record<number, string>;
+  requirementData: Record<number, string>;
+  extractedValueData: Record<number, string>;
   synopsisContent: SynopsisContent;
   timestamp?: string;
 }
