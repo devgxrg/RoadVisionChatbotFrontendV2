@@ -70,6 +70,15 @@ export interface ScrapedTender {
     address: string
 
     information_source: string
+
+    // Additional fields from Tender model
+    length_km?: number
+    per_km_cost?: number
+    span_length?: number
+    road_work_amount?: number
+    structure_work_amount?: number
+    remarks?: string
+    current_status?: string
 }
 
 export interface WorkComponentSchema {
@@ -121,6 +130,11 @@ export interface ScopeOfWorkProjectDetailsSchema {
     total_area?: string
     duration?: string
     contract_value?: string
+    // Engineering metrics for Excel export
+    road_length_km?: number
+    span_length_m?: number
+    road_work_value_cr?: number
+    structure_work_value_cr?: number
 }
 
 

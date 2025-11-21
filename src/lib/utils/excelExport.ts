@@ -1,12 +1,59 @@
 import * as XLSX from 'xlsx';
 import { WishlistReportData } from '../types/wishlist';
-import { format } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
+
+/**
+ * Parse date string to Excel date number
+ */
+function parseToExcelDate(dateStr: string): number | string {
+  if (!dateStr) return '';
+  
+  try {
+    let date: Date | null = null;
+    
+    // DD-MM-YYYY: 13-11-2025
+    if (dateStr.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
+      date = parse(dateStr, 'dd-MM-yyyy', new Date());
+    }
+    // DD-MMM-YYYY: 11-Nov-2025 or 13-Nov-2025
+    else if (dateStr.match(/\d{1,2}-[A-Za-z]{3}-\d{4}/)) {
+      date = parse(dateStr, 'dd-MMM-yyyy', new Date());
+    }
+    // ISO format: 2025-11-11T00:00:00 or 2025-11-11
+    else if (dateStr.includes('T') || (dateStr.includes('-') && dateStr.length >= 10)) {
+      date = new Date(dateStr);
+    }
+    // DD MMM: "15 Dec" (assume current year)
+    else if (dateStr.match(/\d{1,2}\s+[A-Za-z]{3}/)) {
+      const currentYear = new Date().getFullYear();
+      date = parse(`${dateStr} ${currentYear}`, 'dd MMM yyyy', new Date());
+    }
+    
+    if (date && isValid(date) && !isNaN(date.getTime())) {
+      // Convert to Excel serial date number (days since 1900-01-01)
+      // Excel incorrectly treats 1900 as a leap year, so we add 1 for dates after Feb 28, 1900
+      const excelEpoch = new Date(1899, 11, 30); // Dec 30, 1899
+      const daysSinceEpoch = Math.floor((date.getTime() - excelEpoch.getTime()) / (24 * 60 * 60 * 1000));
+      console.log(`Date parsed: "${dateStr}" -> ${date.toISOString()} -> Excel: ${daysSinceEpoch}`);
+      return daysSinceEpoch;
+    }
+    
+    console.warn('Date parsing failed for:', dateStr);
+  } catch (e) {
+    console.warn('Date parse error:', dateStr, e);
+  }
+  
+  return ''; // Return empty string if parsing fails
+}
 
 /**
  * Generate and download an Excel file matching the client's TenderList.xlsx template
  * Creates a single "Bidding" sheet with 21 columns exactly as specified by the client
  */
 export function generateWishlistExcel(reportData: WishlistReportData, filename: string = 'Wishlist_Report'): void {
+  console.log('==================== EXCEL EXPORT STARTED ====================');
+  console.log('Total tenders to export:', reportData.tenders.length);
+  
   try {
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
@@ -59,54 +106,122 @@ function createBiddingSheet(reportData: WishlistReportData): XLSX.WorkSheet {
     '',                                // U (empty)
   ];
 
+  // Helper to extract state from city field (e.g., "Aizawl Mizoram" -> "Mizoram")
+  const extractState = (city: string | undefined): string => {
+    if (!city) return '';
+    const parts = city.split(' ');
+    return parts.length > 1 ? parts[parts.length - 1] : city;
+  };
+
   // Prepare data rows with data mapping
-  const dataRows = tenders.map((tender) => {
+  const dataRows = tenders.map((tender, index) => {
     const scraped = tender.full_scraped_details;
 
-    // Extract numeric values for calculations
-    // Convert values from raw numbers to Crores (divide by 10000000)
-    const estimatedCostInCrores = tender.value ? tender.value / 10000000 : null;
-    const emdInCrores = tender.emd ? tender.emd / 10000000 : null;
-    const length = scraped ? parseFloat(String(scraped.total_length || 0)) : 0;
+    // Helper to safely parse numeric values
+    const parseNum = (value: any): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const str = String(value).replace(/,/g, '').trim();
+      const num = parseFloat(str);
+      return isNaN(num) ? null : num;
+    };
+    
+    // Helper to get clean status - try scraped.current_status first
+    const getStatus = (): string => {
+      // First priority: use current_status from backend (already cleaned)
+      if (scraped?.current_status) {
+        return String(scraped.current_status);
+      }
+      
+      // Second priority: use results from tender
+      if (tender.results) {
+        const status = String(tender.results).toLowerCase();
+        if (status.includes('pending') || status.includes('open')) return 'Pending';
+        if (status.includes('won')) return 'Won';
+        if (status.includes('lost') || status.includes('reject')) return 'Lost';
+        if (status.includes('closed')) return 'Closed';
+        return String(tender.results).charAt(0).toUpperCase() + String(tender.results).slice(1);
+      }
+      return 'Pending';
+    };
 
-    // Build row array (will add formulas later)
+    // Extract numeric values - tender.value and tender.emd are in RUPEES
+    const tenderValue = parseNum(tender.value);
+    const emdValue = parseNum(tender.emd);
+    
+    // Convert from rupees to crores
+    const estimatedCost = tenderValue ? tenderValue / 10000000 : null;
+    const bidSecurity = emdValue ? emdValue / 10000000 : null;
+    
+    // Get values from full_scraped_details with better fallbacks
+    const lengthKm = parseNum(scraped?.length_km);
+    const spanLengthValue = parseNum(scraped?.span_length);
+    const roadWorkAmountValue = parseNum(scraped?.road_work_amount);
+    const structureWorkAmountValue = parseNum(scraped?.structure_work_amount);
+    
+    // per_km_cost from backend (already in rupees, convert to crores)
+    const perKmCostBackend = scraped?.per_km_cost ? parseNum(scraped.per_km_cost) / 10000000 : null;
+    
+    // Convert to crores if values exist
+    const roadWork = roadWorkAmountValue ? roadWorkAmountValue / 10000000 : null;
+    const structureWork = structureWorkAmountValue ? structureWorkAmountValue / 10000000 : null;
+    
+    // Log first tender to debug data structure
+    if (index === 0) {
+      console.log('Excel Export - First Tender FULL DATA:', JSON.stringify(tender, null, 2));
+      console.log('Excel Export - Scraped Details:', JSON.stringify(scraped, null, 2));
+      console.log('Excel Export - Parsed Values:', {
+        lengthKm,
+        spanLengthValue,
+        roadWorkAmountValue,
+        structureWorkAmountValue,
+        perKmCostBackend,
+        estimatedCost,
+        bidSecurity
+      });
+    }
+
+    // Parse dates - try multiple field sources
+    const publishDate = parseToExcelDate(scraped?.publish_date || (scraped as any)?.published_date || (scraped as any)?.e_published_date || '');
+    const dueDate = parseToExcelDate(tender.due_date || scraped?.last_date_of_bid_submission || (scraped as any)?.last_date || '');
+
+    // Build row array
     return {
       // A: S. No - Will be set as formula
-      sNo: null as any, // Placeholder, will be replaced with formula
+      sNo: null as any,
       // B: Tender Id
-      tenderId: scraped?.tender_id_detail || '',
+      tenderId: scraped?.tender_id_detail || scraped?.tender_no || scraped?.tdr || scraped?.tender_id_str || tender.id || '',
       // C: Name of the Work
-      nameOfWork: tender.title || '',
+      nameOfWork: tender.title || scraped?.tender_name || scraped?.tender_brief || '',
       // D: Employer
-      employer: tender.authority || scraped?.company_name || '',
+      employer: tender.authority || scraped?.tendering_authority || scraped?.company_name || '',
       // E: State
-      state: scraped?.state || '',
+      state: extractState(scraped?.city),
       // F: Mode (Bidding Type)
-      mode: scraped?.bidding_type || '',
+      mode: scraped?.bidding_type || scraped?.tender_type || scraped?.competition_type || 'Open Tender',
       // G: Estimated Project Cost (in Crores)
-      estimatedCost: estimatedCostInCrores,
+      estimatedCost: estimatedCost,
       // H: e-Published Date
-      ePublishedDate: scraped?.publish_date || '',
+      ePublishedDate: publishDate,
       // I: Tender Identification Date
-      tenderIdDate: scraped?.publish_date || '',
+      tenderIdDate: publishDate,
       // J: Last Date
-      lastDate: tender.due_date || '',
+      lastDate: dueDate,
       // K: BID Security in Cr.
-      bidSecurity: emdInCrores,
-      // L: Length
-      length: length || null,
-      // M: Per Km Cost - Formula: =G/L (will add formula if we have both values)
-      perKmCost: null as any, // Will be set as formula
-      // N: Required Span Length
-      requiredSpanLength: null,
-      // O: Amount of Road Work - Formula: =G*49.63%
-      roadWork: null as any, // Will be set as formula
-      // P: Amount of Structure Work - Formula: =G*50.37%
-      structureWork: null as any, // Will be set as formula
-      // Q: Remarks
-      remarks: scraped?.summary || '',
-      // R: Current Status
-      currentStatus: tender.results || '',
+      bidSecurity: bidSecurity,
+      // L: Length - NO CONVERSION, store as-is
+      length: lengthKm,
+      // M: Per Km Cost - NO CONVERSION, use formula or store as-is
+      perKmCost: perKmCostBackend,
+      // N: Required Span Length - NO CONVERSION
+      requiredSpanLength: spanLengthValue,
+      // O: Amount of Road Work (in Crores)
+      roadWork: roadWork,
+      // P: Amount of Structure Work (in Crores)
+      structureWork: structureWork,
+      // Q: Remarks - use backend cleaned remarks first
+      remarks: scraped?.remarks || scraped?.summary || scraped?.tender_brief || scraped?.tender_details || '',
+      // R: Current Status - use backend current_status first
+      currentStatus: getStatus(),
       // S-U: Empty
       empty1: '',
       empty2: '',
@@ -236,26 +351,39 @@ function addFormulasAndFormatting(worksheet: XLSX.WorkSheet, worksheetData: any[
       worksheet[cellL].z = '_ * #,##0.00_ ;_ * \\-#,##0.00_ ;_ * "-"??_ ;_ @_';
     }
 
-    // === Column M: Per Km Cost - Formula =G/L ===
+    // === Column M: Per Km Cost - Use backend value or Formula =G/L ===
     const cellM = XLSX.utils.encode_cell({ r, c: 12 });
     const cellGValue = worksheetData[r][6]; // G column
     const cellLValue = worksheetData[r][11]; // L column
-    if (cellGValue && cellLValue) {
+    const perKmCostValue = worksheetData[r][12]; // M column - check if backend provided value
+    
+    if (perKmCostValue && typeof perKmCostValue === 'number') {
+      // Use backend-provided per_km_cost value
+      worksheet[cellM] = { v: perKmCostValue, t: 'n' };
+      worksheet[cellM].z = '_(* #,##0.00_);_(* \(#,##0.00\);_(* "-"??_);_(@_)';
+    } else if (cellGValue && cellLValue) {
+      // Calculate using formula if backend didn't provide value
       worksheet[cellM] = { f: `=+G${currentRow}/L${currentRow}`, t: 'n' };
-      worksheet[cellM].z = '_(* #,##0.00_);_(* \\(#,##0.00\\);_(* "-"??_);_(@_)';
+      worksheet[cellM].z = '_(* #,##0.00_);_(* \(#,##0.00\);_(* "-"??_);_(@_)';
     }
 
-    // === Column O: Amount of Road Work - Formula =G*49.63% ===
-    // const cellO = XLSX.utils.encode_cell({ r, c: 14 });
-    // if (cellGValue) {
-    //   worksheet[cellO] = { f: `=+G${currentRow}*49.63%`, t: 'n' };
-    // }
+    // === Column N: Required Span Length - Number format ===
+    const cellN = XLSX.utils.encode_cell({ r, c: 13 });
+    if (worksheet[cellN] && worksheet[cellN].v !== null && worksheet[cellN].v !== undefined) {
+      worksheet[cellN].z = '_ * #,##0.00_ ;_ * \\-#,##0.00_ ;_ * "-"??_ ;_ @_';
+    }
 
-    // === Column P: Amount of Structure Work - Formula =G*50.37% ===
-    // const cellP = XLSX.utils.encode_cell({ r, c: 15 });
-    // if (cellGValue) {
-    //   worksheet[cellP] = { f: `=+G${currentRow}*50.37%`, t: 'n' };
-    // }
+    // === Column O: Amount of Road Work - Number format ===
+    const cellO = XLSX.utils.encode_cell({ r, c: 14 });
+    if (worksheet[cellO] && worksheet[cellO].v !== null && worksheet[cellO].v !== undefined) {
+      worksheet[cellO].z = '_ * #,##0.00_ ;_ * \\-#,##0.00_ ;_ * "-"??_ ;_ @_';
+    }
+
+    // === Column P: Amount of Structure Work - Number format ===
+    const cellP = XLSX.utils.encode_cell({ r, c: 15 });
+    if (worksheet[cellP] && worksheet[cellP].v !== null && worksheet[cellP].v !== undefined) {
+      worksheet[cellP].z = '_ * #,##0.00_ ;_ * \\-#,##0.00_ ;_ * "-"??_ ;_ @_';
+    }
   }
 
   // === Date/Time formatting for columns H, I, J ===
