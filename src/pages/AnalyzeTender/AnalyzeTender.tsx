@@ -22,6 +22,13 @@ export default function AnalyzeTender() {
     queryKey: ['tenderAnalysis', id],
     queryFn: () => fetchTenderAnalysis(id!),
     enabled: !!id,
+    // Poll every 2 seconds if analysis is in progress
+    refetchInterval: (data) => {
+      if (!data) return false;
+      const isInProgress = data.status !== 'completed' && data.status !== 'failed';
+      return isInProgress ? 2000 : false;
+    },
+    refetchIntervalInBackground: true,
   });
 
   const handleBack = () => {

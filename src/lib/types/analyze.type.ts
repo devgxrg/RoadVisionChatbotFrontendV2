@@ -159,9 +159,10 @@ export interface TemplatesData extends TemplateSection {}
 export interface TenderAnalysisResponse {
   id: string;
   tender_id: string;
-  status: 'completed' | 'in_progress' | 'failed';
+  status: 'completed' | 'processing' | 'analyzing' | 'parsing' | 'pending' | 'failed';
+  progress?: number; // 0-100
   analyzed_at: string; // ISO 8601
-  one_pager: OnePagerData;
+  one_pager: OnePagerData | null;
   scope_of_work: ScopeOfWorkData | null;
   rfp_sections: RFPSectionsData | null;
   data_sheet: DataSheetData | null;

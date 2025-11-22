@@ -52,12 +52,12 @@ export default function AnalyzeTenderUI({
                 {isLoading
                   ? 'Loading analysis...'
                   : analysis
-                    ? `Status: ${analysis.status}`
+                    ? `Status: ${analysis.status || 'Processing'}`
                     : 'Analysis Results'}
               </p>
             </div>
           </div>
-          {analysis && (
+          {!isLoading && analysis && analysis.status === 'completed' && (
             <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -106,15 +106,49 @@ export default function AnalyzeTenderUI({
           </Card>
         )}
 
+        {/* Analysis in Progress */}
+        {!isLoading && analysis && analysis.status !== 'completed' && analysis.status !== 'failed' && (
+          <Card className="p-8">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-semibold">
+                  Analysis in Progress
+                </h3>
+                <p className="text-muted-foreground capitalize">
+                  Status: {analysis.status}
+                </p>
+                {analysis.progress !== undefined && (
+                  <div className="w-full max-w-md mt-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Progress</span>
+                      <span className="font-semibold">{analysis.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${analysis.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground mt-4">
+                  This may take a few minutes. The page will automatically update when complete.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Analysis Results */}
-        {analysis && (
+        {!isLoading && !isError && analysis && analysis.status === 'completed' && (
           <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="one-pager">One Pager</TabsTrigger>
-              <TabsTrigger value="scope" disabled={analysis.scope_of_work === null}>Scope of Work</TabsTrigger>
-              <TabsTrigger value="sections" disabled={analysis.rfp_sections === null}>RFP Sections</TabsTrigger>
-              <TabsTrigger value="datasheet" disabled={analysis.data_sheet === null}>Data Sheet</TabsTrigger>
-              <TabsTrigger value="templates" disabled={analysis.templates === null}>Templates</TabsTrigger>
+              <TabsTrigger value="scope" disabled={!analysis.scope_of_work}>Scope of Work</TabsTrigger>
+              <TabsTrigger value="sections" disabled={!analysis.rfp_sections}>RFP Sections</TabsTrigger>
+              <TabsTrigger value="datasheet" disabled={!analysis.data_sheet}>Data Sheet</TabsTrigger>
+              <TabsTrigger value="templates" disabled={!analysis.templates}>Templates</TabsTrigger>
             </TabsList>
 
             <TabsContent value="one-pager" className="mt-6">

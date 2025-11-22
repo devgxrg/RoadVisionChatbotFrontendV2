@@ -216,9 +216,9 @@ export default function TenderDetailsUI({
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {/* <Button size="sm" variant="outline" onClick={() => window.open(doc.file_url, '_blank')} disabled={!doc.file_url}>
+                        <Button size="sm" variant="outline" onClick={() => window.open(doc.file_url, '_blank')} disabled={!doc.file_url}>
                           View
-                        </Button> */}
+                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -273,11 +273,11 @@ export default function TenderDetailsUI({
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
                                         <p className="font-medium">{doc.file_name}</p>
-                                        {/*{doc.isAIGenerated && (
+                                        {/* {doc.isAIGenerated && (
                                           <Badge variant="secondary" className="text-xs">
                                             AI Generated
                                           </Badge>
-                                        )}*/}
+                                        )} */}
                                       </div>
                                       <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                                         <span className="uppercase">{doc.file_type}</span>

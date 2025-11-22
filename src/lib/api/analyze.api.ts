@@ -40,6 +40,13 @@ export const fetchTenderAnalysis = async (tenderId: string): Promise<TenderAnaly
     const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      throw new Error(`Failed to fetch analysis: ${response.status} ${response.statusText}`);
+    }
+
     const data = await response.json() as TenderAnalysisResponse;
     data.rfp_sections = data.rfp_sections || mockTenderAnalysis.rfp_sections
     data.data_sheet = data.data_sheet || mockTenderAnalysis.data_sheet
