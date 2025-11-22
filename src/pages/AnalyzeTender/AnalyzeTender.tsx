@@ -38,16 +38,6 @@ export default function AnalyzeTender() {
     queryKey: ['tenderAnalysis', id],
     queryFn: () => fetchTenderAnalysis(id!),
     enabled: !!id,
-
-    // 🟢 Keep your live polling logic (fix/scraper-run)
-    refetchInterval: (data) => {
-      if (!data) return false;
-      const inProgress = data.status !== 'completed' && data.status !== 'failed';
-      return inProgress ? 2000 : false; // Poll every 2 sec
-    },
-    refetchIntervalInBackground: true,
-
-    // 🟢 Keep these from main to avoid unnecessary retries & focus refetch
     retry: false,
     refetchOnWindowFocus: false,
   });
