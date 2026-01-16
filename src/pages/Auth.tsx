@@ -71,6 +71,20 @@ export default function Auth() {
     try {
       await register(registerData);
 
+      // Store user profile data in localStorage for Profile page
+      localStorage.setItem(
+        "user_profile",
+        JSON.stringify({
+          email: registerData.email,
+          full_name: registerData.full_name,
+          employee_id: registerData.employee_id,
+          mobile_number: registerData.mobile_number,
+          designation: registerData.designation,
+          department: registerData.department,
+          created_at: new Date().toISOString(),
+        })
+      );
+
       toast({
         title: "Registration successful",
         description: "You have been automatically logged in.",

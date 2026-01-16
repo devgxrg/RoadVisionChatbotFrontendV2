@@ -12,12 +12,18 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: [".ngrok-free.app", ".lhr.life", "ceigall.roadvision.ai"],
     proxy: {
       "/api": {
-        target: "http://localhost:5001",
+        target: "http://localhost:8000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
+        rewrite: (path) => {
+          // Rewrite /api/* to /api/v1/* (but not /api/v1/* to /api/v1/v1/*)
+          if (path.startsWith("/api/v1")) {
+            return path; // Already has /v1, don't rewrite
+          }
+          return path.replace(/^\/api/, "/api/v1");
+        },
       },
       "/docs": {
-        target: "http://localhost:5001",
+        target: "http://localhost:8000",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/docs/, "/docs"),
       },

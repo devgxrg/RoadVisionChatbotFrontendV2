@@ -2,9 +2,98 @@ import { useEffect, useState } from "react"
 import { Report, SSEBatchTenders, StreamStatus } from "../types/tenderiq.types"
 import { API_BASE_URL } from "../config/api";
 
+// Cache tenders data for instant loading
+const TENDERS_CACHE_KEY = 'tenders_cache_v1';
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
+const MAX_CACHED_TENDERS = 100; // Limit cache size to prevent quota issues
+
+const getCachedTenders = (cacheKey: string): Report | null => {
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) return null;
+    
+    const { data, timestamp } = JSON.parse(cached);
+    const now = Date.now();
+    
+    // If cache is too old, discard it
+    if (now - timestamp > 60 * 60 * 1000) { // 1 hour max
+      localStorage.removeItem(cacheKey);
+      return null;
+    }
+    
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedTenders = (cacheKey: string, data: Report): void => {
+  try {
+    // Create a lightweight version with only first 100 tenders and essential fields
+    const lightweightReport: Report = {
+      ...data,
+      queries: data.queries.map((query, index) => {
+        if (index === 0) {
+          // Only cache first MAX_CACHED_TENDERS with essential fields
+          const limitedTenders = query.tenders.slice(0, MAX_CACHED_TENDERS).map(t => ({
+            id: t.id,
+            tender_id_str: t.tender_id_str,
+            tdr: t.tdr,
+            tender_name: t.tender_name,
+            tender_value: t.tender_value,
+            emd: t.emd,
+            publish_date: t.publish_date,
+            submission_date: t.submission_date,
+            company_name: t.company_name,
+            city: t.city,
+            state: t.state,
+            is_wishlisted: t.is_wishlisted,
+            // Exclude large fields like document_text, extracted_data, etc.
+          }));
+          
+          return {
+            ...query,
+            tenders: limitedTenders,
+          };
+        }
+        return query;
+      })
+    };
+    
+    localStorage.setItem(cacheKey, JSON.stringify({
+      data: lightweightReport,
+      timestamp: Date.now(),
+      cached_count: MAX_CACHED_TENDERS
+    }));
+  } catch (e) {
+    // If still too large, silently ignore
+    console.warn('Failed to cache tenders (data too large):', e);
+  }
+};
+
+const isCacheFresh = (cacheKey: string): boolean => {
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) return false;
+    const { timestamp } = JSON.parse(cached);
+    return Date.now() - timestamp < CACHE_DURATION;
+  } catch {
+    return false;
+  }
+};
 
 export const useReportStream = (run_id?: string, dateRange?: string) => {
-  const [report, setReport] = useState<Report | null>(null);
+  // Create cache key based on run_id and dateRange
+  const cacheKey = `${TENDERS_CACHE_KEY}_${run_id || 'none'}_${dateRange || 'none'}`;
+  
+  console.log('[Cache Debug] Cache key:', cacheKey);
+  console.log('[Cache Debug] Checking for cached data...');
+  
+  // Initialize with cached data if available
+  const initialCachedData = getCachedTenders(cacheKey);
+  console.log('[Cache Debug] Initial cached data found:', !!initialCachedData, 'tenders:', initialCachedData?.queries[0]?.tenders?.length || 0);
+  
+  const [report, setReport] = useState<Report | null>(initialCachedData);
   const [status, setStatus] = useState<StreamStatus>("idle")
   const [error, setError] = useState<string | null>(null)
   const [shouldWarn401, setShouldWarn401] = useState(false)
@@ -52,6 +141,17 @@ export const useReportStream = (run_id?: string, dateRange?: string) => {
   }
 
   useEffect(() => {
+    // Check if we have fresh cached data - show it immediately but still fetch in background
+    const cachedData = getCachedTenders(cacheKey);
+    const hasFreshCache = cachedData && isCacheFresh(cacheKey);
+    
+    if (hasFreshCache) {
+      console.log('Using fresh cached tenders data, refreshing in background...');
+      console.log('Cached tenders count:', cachedData?.queries[0]?.tenders?.length || 0);
+      setStatus('complete'); // Set to complete initially to show cached data
+      // Continue to fetch fresh data in background
+    }
+    
     let url = `${API_BASE_URL}/tenderiq/tenders-sse`
     const params = new URLSearchParams()
     
@@ -68,7 +168,12 @@ export const useReportStream = (run_id?: string, dateRange?: string) => {
     
     console.log("Connecting to SSE with URL:", url)
     const evtSource = new EventSource(url)
-    setStatus("streaming")
+    
+    // Only set streaming status if we don't have fresh cache
+    if (!hasFreshCache) {
+      setStatus("streaming")
+    }
+    
     setError(null)
     setShouldWarn401(true)
 
@@ -120,6 +225,7 @@ export const useReportStream = (run_id?: string, dateRange?: string) => {
       }
       
       setReport(sortedReport)
+      setCachedTenders(cacheKey, sortedReport)
       // Reset 401 warning on successful connection
       setShouldWarn401(false)
     }
@@ -181,10 +287,15 @@ export const useReportStream = (run_id?: string, dateRange?: string) => {
           }
         })
         
-        return {
+        const updatedReport = {
           ...prevReport,
           queries: newQueries
         }
+        
+        // Cache the updated report
+        setCachedTenders(cacheKey, updatedReport)
+        
+        return updatedReport
       })
     }
 

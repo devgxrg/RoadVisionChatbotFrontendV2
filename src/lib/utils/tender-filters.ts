@@ -17,7 +17,7 @@ export const filterTenders = (
   params: TenderFilterParams
 ): Tender[] => {
   return tenders.filter(tender => {
-    // Search filter - search title, authority, category, and tender ID
+    // Search filter - search title, authority, category, tender ID, TDR, and tender number
     if (params.searchTerm) {
       const search = params.searchTerm.toLowerCase();
       const matchesSearch =
@@ -25,7 +25,11 @@ export const filterTenders = (
         tender.authority.toLowerCase().includes(search) ||
         tender.category.toLowerCase().includes(search) ||
         (tender.id && tender.id.toLowerCase().includes(search)) ||
-        (tender.ePublishedDate && tender.ePublishedDate.toLowerCase().includes(search));
+        (tender.ePublishedDate && tender.ePublishedDate.toLowerCase().includes(search)) ||
+        // Add TDR and tender_no search (if available in tender object)
+        ((tender as any).tdr && String((tender as any).tdr).toLowerCase().includes(search)) ||
+        ((tender as any).tender_no && String((tender as any).tender_no).toLowerCase().includes(search)) ||
+        ((tender as any).tender_id_str && String((tender as any).tender_id_str).toLowerCase().includes(search));
 
       if (!matchesSearch) return false;
     }

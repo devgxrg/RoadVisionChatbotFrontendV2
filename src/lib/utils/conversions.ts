@@ -1,6 +1,9 @@
 export const getCurrencyTextFromNumber = (number: number): string => {
   let crore = number / 10000000;
-  let result = crore.toString() + " Crores"
+  let formatted = crore.toFixed(2);
+  // Remove trailing zeros after decimal point
+  formatted = parseFloat(formatted).toString();
+  let result = "₹" + formatted + " Cr"
 
   return result;
 }

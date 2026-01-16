@@ -12,6 +12,7 @@ import { useLiveFilters } from "@/hooks/useLiveFilters";
 import { useToast } from "@/hooks/use-toast";
 import { fetchWishlistedTenders, fetchFavoriteTenders, fetchArchivedTenders } from "@/lib/api/tenderiq";
 import { useTenderActions } from "@/hooks/useTenderActions";
+import { toTitleCase } from "@/lib/utils/text-formatting";
 
 interface LiveTendersProps {
   onBack?: () => void;
@@ -324,7 +325,7 @@ const LiveTenders = ({ onBack }: LiveTendersProps) => {
                   <SelectContent>
                     {locations.map(loc => (
                       <SelectItem key={loc} value={loc}>
-                        {loc === "all" ? "All Locations" : loc}
+                        {loc === "all" ? "All Locations" : toTitleCase(loc)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -459,7 +460,7 @@ const LiveTenders = ({ onBack }: LiveTendersProps) => {
             )}
             {selectedLocation !== "all" && (
               <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-medium">
-                {selectedLocation} ✕
+                {toTitleCase(selectedLocation)} ✕
               </div>
             )}
             {(minValue || maxValue) && (
@@ -528,10 +529,10 @@ const LiveTenders = ({ onBack }: LiveTendersProps) => {
                               <h3 className="text-lg font-bold text-foreground">{tender.title}</h3>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                                 <MapPin className="h-4 w-4" />
-                                <span>{tender.location}</span>
+                                <span>{toTitleCase(tender.location)}</span>
                               </div>
                               <div className="flex items-center gap-2 mt-1">
-                                <p className="text-sm font-mono bg-primary/10 text-primary px-2 py-1 rounded inline-block">{tender.authority}</p>
+                                <p className="text-sm font-mono bg-primary/10 text-primary px-2 py-1 rounded inline-block">{toTitleCase(tender.authority)}</p>
                               </div>
                             </div>
                             <div className="flex gap-1">

@@ -62,6 +62,22 @@ export function useTenderActions() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update wishlist';
       console.error('Error toggling wishlist:', error);
+      
+      // If tender is not found in database, remove it from the UI
+      if (errorMessage.includes('not found') || errorMessage.includes('removed from your wishlist')) {
+        queryClient.setQueryData(['wishlist'], (oldData: any[]) => {
+          if (!oldData) return oldData;
+          return oldData.filter(item => item.id !== tenderId);
+        });
+        
+        toast({
+          title: 'Tender Removed',
+          description: 'This tender is no longer available. It has been removed from your wishlist.',
+          variant: 'destructive',
+        });
+        return; // Don't throw error, just silently remove it
+      }
+      
       toast({
         title: 'Error',
         description: errorMessage,
@@ -100,6 +116,22 @@ export function useTenderActions() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update favorites';
       console.error('Error toggling favorite:', error);
+      
+      // If tender is not found in database, remove it from the UI
+      if (errorMessage.includes('not found') || errorMessage.includes('no longer available')) {
+        queryClient.setQueryData(['favorites'], (oldData: any[]) => {
+          if (!oldData) return oldData;
+          return oldData.filter(item => item.id !== tenderId);
+        });
+        
+        toast({
+          title: 'Tender Removed',
+          description: 'This tender is no longer available. It has been removed from your favorites.',
+          variant: 'destructive',
+        });
+        return; // Don't throw error, just silently remove it
+      }
+      
       toast({
         title: 'Error',
         description: errorMessage,
@@ -138,6 +170,22 @@ export function useTenderActions() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update archive';
       console.error('Error toggling archive:', error);
+      
+      // If tender is not found in database, remove it from the UI
+      if (errorMessage.includes('not found') || errorMessage.includes('no longer available')) {
+        queryClient.setQueryData(['archived'], (oldData: any[]) => {
+          if (!oldData) return oldData;
+          return oldData.filter(item => item.id !== tenderId);
+        });
+        
+        toast({
+          title: 'Tender Removed',
+          description: 'This tender is no longer available. It has been removed from your archive.',
+          variant: 'destructive',
+        });
+        return; // Don't throw error, just silently remove it
+      }
+      
       toast({
         title: 'Error',
         description: errorMessage,

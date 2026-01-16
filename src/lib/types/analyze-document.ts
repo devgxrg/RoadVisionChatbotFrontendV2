@@ -1,4 +1,7 @@
 export interface DocumentAnalysisResult {
+  id?: string;
+  fileName?: string;
+  analysisDate?: string;
   riskLevel: "low" | "medium" | "high";
   riskMessage: string;
   extractedFacts: ExtractedFacts;

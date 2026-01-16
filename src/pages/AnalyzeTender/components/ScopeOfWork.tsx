@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScopeOfWorkData } from '@/lib/types/analyze.type';
+import { toTitleCase } from '@/lib/utils/text-formatting';
 
 interface ScopeOfWorkProps {
   scopeOfWork: ScopeOfWorkData | null;
@@ -27,7 +28,7 @@ export default function ScopeOfWork({ scopeOfWork }: ScopeOfWorkProps) {
           </div>
           <div>
             <p className="text-muted-foreground">Location</p>
-            <p className="font-medium">{scopeOfWork.project_details.location}</p>
+            <p className="font-medium">{toTitleCase(scopeOfWork.project_details.location)}</p>
           </div>
           {scopeOfWork.project_details.total_length && (
             <div>

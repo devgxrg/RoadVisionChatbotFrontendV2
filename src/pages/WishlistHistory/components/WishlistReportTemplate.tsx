@@ -2,6 +2,7 @@ import { WishlistReportData } from '@/lib/types/wishlist';
 import { getCurrencyTextFromNumber } from '@/lib/utils/conversions';
 import { format } from 'date-fns';
 import { forwardRef } from 'react';
+import { toTitleCase } from '@/lib/utils/text-formatting';
 
 interface WishlistReportTemplateProps {
   reportData: WishlistReportData;
@@ -186,10 +187,10 @@ const WishlistReportTemplate = forwardRef<HTMLDivElement, WishlistReportTemplate
                     EMD
                   </th>
                   <th className="border border-foreground px-3 py-2 text-left font-semibold text-foreground">
-                    Due Date
+                    Bid Deadline
                   </th>
                   <th className="border border-foreground px-3 py-2 text-left font-semibold text-foreground">
-                    Category
+                    Published Date
                   </th>
                   <th className="border border-foreground px-3 py-2 text-left font-semibold text-foreground">
                     Status
@@ -206,11 +207,11 @@ const WishlistReportTemplate = forwardRef<HTMLDivElement, WishlistReportTemplate
                       {index + 1}
                     </td>
                     <td className="border border-foreground px-3 py-2 text-foreground">
-                      <div className="font-semibold">{tender.title}</div>
-                      <div className="text-xs text-muted-foreground">ID: {tender.id}</div>
+                      <div className="font-semibold">{toTitleCase(tender.title)}</div>
+                      <div className="text-xs text-muted-foreground">TDR: {tender.tender_no || 'N/A'}</div>
                     </td>
                     <td className="border border-foreground px-3 py-2 text-foreground">
-                      {tender.authority}
+                      {toTitleCase(tender.authority)}
                     </td>
                     <td className="border border-foreground px-3 py-2 text-right font-semibold text-foreground">
                       {tender.formattedValue}
@@ -219,10 +220,10 @@ const WishlistReportTemplate = forwardRef<HTMLDivElement, WishlistReportTemplate
                       {tender.formattedEMD}
                     </td>
                     <td className="border border-foreground px-3 py-2 text-foreground text-sm">
-                      {tender.due_date}
+                      {tender.last_date_of_bid_submission || 'N/A'}
                     </td>
                     <td className="border border-foreground px-3 py-2 text-foreground text-sm">
-                      {tender.category}
+                      {tender.publish_date || 'N/A'}
                     </td>
                     <td className="border border-foreground px-3 py-2">
                       <span

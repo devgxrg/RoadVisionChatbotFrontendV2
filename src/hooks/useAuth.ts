@@ -8,7 +8,7 @@ import {
   setToken,
   clearError,
 } from '@/lib/redux/authSlice';
-import { login, register } from '@/lib/api/auth';
+import { login, register, logout as apiLogout, getToken } from '@/lib/api/auth';
 import { RegisterRequest, TokenResponse } from '@/lib/types/auth';
 
 /**
@@ -49,7 +49,11 @@ export const useAuth = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const token = getToken();
+    if (token) {
+      await apiLogout(token);
+    }
     dispatch(logoutSuccess());
   };
 

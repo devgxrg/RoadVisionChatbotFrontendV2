@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
@@ -13,7 +13,6 @@ import {
 } from '@/lib/api/tenderiq';
 import { Tender, FullTenderDetails, TenderHistoryItem } from '@/lib/types/tenderiq.types';
 import { useTenderActions } from '@/hooks/useTenderActions';
-import { useSearchParams } from 'react-router-dom';
 
 export default function TenderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -46,11 +45,16 @@ export default function TenderDetails() {
     queryFn: fetchArchivedTenders,
   });
 
-  // Fetch tender history/changes
-  const { data: tenderHistory, isLoading: isLoadingHistory, refetch: refetchHistory } = useQuery<TenderHistoryItem[], Error>({
-    queryKey: ['tenderHistory', id],
-    queryFn: () => fetchTenderHistory(id!),
-    enabled: !!id,
+  // Fetch tender history/changes from dedicated corrigendum endpoint
+  // Use TDR if present, otherwise UUID
+  const historyKey = tdr ? ['tenderHistory', tdr] : ['tenderHistory', id];
+  const {
+    data: tenderHistory = [],
+    isLoading: isLoadingHistory,
+  } = useQuery<TenderHistoryItem[], Error>({
+    queryKey: historyKey,
+    queryFn: () => fetchTenderHistory(tdr || id!),
+    enabled: !!(id || tdr),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: true,

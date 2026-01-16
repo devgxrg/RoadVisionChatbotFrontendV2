@@ -12,6 +12,13 @@ export interface CaseDocument {
   type: string;
 }
 
+export interface AIInsights {
+  summary: string;
+  winProbability: string;
+  estimatedDuration: string;
+  recommendedAction: string;
+}
+
 export interface Case {
   id: number;
   caseTitle: string;
@@ -38,6 +45,7 @@ export interface Case {
   respondentAdvocate: string;
   hearings: Hearing[];
   documents: CaseDocument[];
+  aiInsights?: AIInsights;
 }
 
 export interface CaseTrackerData {
@@ -46,3 +54,4 @@ export interface CaseTrackerData {
   upcomingHearings: number;
   avgCaseDuration: number;
 }
+

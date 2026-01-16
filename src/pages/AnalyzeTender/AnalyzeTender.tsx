@@ -31,15 +31,28 @@ export default function AnalyzeTender() {
     queryFn: () => fetchTenderAnalysis(id!),
     enabled: !!id,
     retry: 0, // Don't retry on 404
-    // Poll ONLY when analysis is actively in progress (not completed, not failed, not just existing)
+    // Poll when analysis is in progress or data exists
     refetchInterval: (query) => {
-      // Only poll if analysis has a status that indicates it's being processed
       const data = query.state.data as TenderAnalysisResponse | undefined;
-      if (data && data.status && data.status !== 'completed' && data.status !== 'failed') {
-        // Poll every 20 seconds while processing
-        return 20000;
+      
+      // Poll if:
+      // 1. Data exists and status is not completed/failed
+      // 2. No data exists yet (analysis might be initializing)
+      if (!data) {
+        // No data yet - poll every 5 seconds to catch initial status
+        return 5000;
       }
-      // Don't poll: no data, error (404), completed, failed, or just exists
+      
+      const isProcessing = data.status && 
+        data.status !== 'completed' && 
+        data.status !== 'failed';
+      
+      if (isProcessing) {
+        // Poll every 10 seconds while processing (faster than 20s for better UX)
+        return 10000;
+      }
+      
+      // Don't poll: completed, failed, or just exists
       return false;
     },
     refetchIntervalInBackground: true,
@@ -85,7 +98,7 @@ export default function AnalyzeTender() {
     }
   };
 
-  const handleStartAnalysis = () => {
+  const handleStartAnalysis = async () => {
     if (!id) return;
     
     // Show toast immediately without waiting
@@ -96,28 +109,30 @@ export default function AnalyzeTender() {
     
     console.log('Starting analysis for tender:', id);
     
-    // Trigger analysis in the background (fire and forget)
-    triggerTenderAnalysis(id)
-      .then((result) => {
-        console.log('Analysis trigger result:', result);
-        if (result.status === 'already_analyzed') {
-          toast({
-            title: 'Analysis already exists',
-            description: result.message || 'We found an existing analysis for this tender.',
-          });
-        }
-        // Refetch to get updated status and trigger polling
-        return refetch();
-      })
-      .catch((err) => {
-        const message = err instanceof Error ? err.message : 'Failed to start analysis';
-        console.error('Analysis start error:', err);
+    try {
+      // Trigger analysis
+      const result = await triggerTenderAnalysis(id);
+      console.log('Analysis trigger result:', result);
+      
+      if (result.status === 'already_analyzed') {
         toast({
-          title: 'Error',
-          description: message,
-          variant: 'destructive',
+          title: 'Analysis already exists',
+          description: result.message || 'We found an existing analysis for this tender.',
         });
+      }
+      
+      // Immediately refetch to get updated status and activate polling
+      // Use skipCache to ensure fresh data from server
+      await refetch();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to start analysis';
+      console.error('Analysis start error:', err);
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
       });
+    }
   };
 
   return (

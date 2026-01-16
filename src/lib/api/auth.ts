@@ -94,6 +94,27 @@ export function removeToken(): void {
 }
 
 /**
+ * Logout user and invalidate token on backend
+ */
+export async function logout(token: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    console.error('Logout API call failed:', error);
+    // Continue with local logout even if API call fails
+  }
+  
+  // Mark this as an explicit logout
+  sessionStorage.setItem('explicitLogout', 'true');
+  removeToken();
+}
+
+/**
  * Check if user is authenticated
  */
 export function isAuthenticated(): boolean {

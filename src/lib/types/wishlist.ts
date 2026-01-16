@@ -192,7 +192,8 @@ export interface TenderAnalysis {
 
 
 export interface HistoryData {
-  id: string;
+  id: string;  // tender ID for navigation
+  wishlist_id?: string;  // wishlist entry ID for updates
   tender_ref_number: string;  // Used for matching wishlisted tenders
   title: string;
   authority: string;
@@ -205,6 +206,9 @@ export interface HistoryData {
   synopsis_state: boolean;
   evaluated_state: boolean;
   results: "won" | "rejected" | "incomplete" | "pending";
+  tender_no?: string;  // Tender number for display
+  publish_date?: string;  // Publication date for display
+  last_date_of_bid_submission?: string;  // Bid deadline - replaces due_date in wishlist view
   full_scraped_details?: ScrapedTender;
   analysis_details?: TenderAnalysis;
 }

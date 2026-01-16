@@ -7,6 +7,7 @@ import { SynopsisContent } from '@/lib/types/bidsynopsis.types';
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from 'react';
 import { BackButton } from '@/components/common/BackButton';
+import { toTitleCase } from '@/lib/utils/text-formatting';
 
 interface BidSynopsisUIProps {
   tenderTitle?: string;
@@ -57,7 +58,7 @@ export default function BidSynopsisUI({
           <div>
             <h1 className="text-3xl font-bold text-foreground">Bid Synopsis</h1>
             <p className="text-muted-foreground mt-1">
-              {tenderTitle || 'Create comprehensive bid summary'}
+              {toTitleCase(tenderTitle || 'Create comprehensive bid summary')}
             </p>
           </div>
           <div className="flex gap-2">

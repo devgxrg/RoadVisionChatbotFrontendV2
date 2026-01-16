@@ -13,12 +13,17 @@ export const fetchWishlistedTenders = async (): Promise<Tender[]> => {
   try {
     const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
-      throw new Error('Failed to fetch wishlisted tenders');
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`Failed to fetch wishlisted tenders: ${response.status} ${errorText}`);
+      throw new Error(`Failed to fetch wishlisted tenders: ${response.status} ${errorText}`);
     }
     const data: Tender[] = await response.json();
     return data
   } catch (error) {
     console.error('Error fetching wishlisted tenders:', error);
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      console.error('Network error - check if backend is running on port 8000');
+    }
     throw error;
   }
 };
@@ -87,7 +92,8 @@ export const getScrapeDates = async (): Promise<ScrapeDateResponse> => {
   try {
     const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`Failed to fetch available dates: ${response.status} ${errorText}`);
       throw new Error(`Failed to fetch available dates: ${response.status} ${errorText}`);
     }
     const data = await response.json() as ScrapeDateResponse;
@@ -95,6 +101,9 @@ export const getScrapeDates = async (): Promise<ScrapeDateResponse> => {
     return data;
   } catch (error) {
     console.error(`Error in getScrapeDates:`, error);
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      console.error('Network error - check if backend is running on port 8000 and proxy is configured');
+    }
     throw error;
   }
 }
@@ -129,10 +138,11 @@ export async function getTodayTenders(): Promise<Report | undefined> {
 
 /**
  * Fetch tender change history (corrigendums and amendments)
+ * Accepts either tender UUID or TDR; backend supports both.
  */
-export const fetchTenderHistory = async (tenderId: string): Promise<TenderHistoryItem[]> => {
-  const url = `${API_BASE_URL}/tenderiq/corrigendum/${tenderId}/history`;
-  console.log(`Fetching tender history for ${tenderId} from:`, url);
+export const fetchTenderHistory = async (tenderIdOrTdr: string): Promise<TenderHistoryItem[]> => {
+  const url = `${API_BASE_URL}/tenderiq/corrigendum/${tenderIdOrTdr}/history`;
+  console.log(`Fetching tender history for ${tenderIdOrTdr} from:`, url);
   try {
     const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
@@ -140,10 +150,10 @@ export const fetchTenderHistory = async (tenderId: string): Promise<TenderHistor
       throw new Error(`Failed to fetch tender history: ${response.status} ${errorText}`);
     }
     const data = await response.json() as TenderHistoryItem[];
-    console.log(`Tender history for ${tenderId} successful:`, data);
+    console.log(`Tender history for ${tenderIdOrTdr} successful:`, data);
     return data;
   } catch (error) {
-    console.error(`Error in fetchTenderHistory for tender ${tenderId}:`, error);
+    console.error(`Error in fetchTenderHistory for tender ${tenderIdOrTdr}:`, error);
     // Return empty array instead of throwing to prevent UI crashes
     return [];
   }

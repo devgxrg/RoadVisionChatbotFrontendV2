@@ -149,6 +149,8 @@ export default function LiveTenders() {
     status={status}
     onChangeDate={onDateSelect}
     dates={dates}
+    currentDateRange={dateRange}
+    currentRunId={runId}
     onAddToWishlist={handleAddToWishlist}
     onViewTender={handleViewTender}
     onNavigateToWishlist={handleNavigateToWishlist}
